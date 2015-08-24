@@ -61,7 +61,7 @@ export LC_ALL=C
 #
 # Initialize constants
 #
-readonly SELF=$0
+readonly SELF=${0##*/}
 
 #
 # Initialize registries
