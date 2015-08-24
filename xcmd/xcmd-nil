@@ -1,0 +1,7 @@
+#!/bin/zsh
+
+if [ $1 = "desc" ]; then
+    echo "do nothing (external command example)"
+fi
+
+

@@ -1,0 +1,74 @@
+#!/bin/zsh -e
+
+S=t_src
+D=_t_dest
+
+prepare()
+{
+    local t=$1
+    mkdir -p ./$D
+    mkdir -p ./$D/$t
+    rm -f ./$D/${t}.log    
+    rm -f ./$D/${t}.zsh.log
+    rm -rf ./$D/$t/*(N)
+}
+
+
+run0()
+{
+    local src=$1
+    local dest=$2
+
+    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --src $src --dest $dest
+}
+
+run()
+{
+    local s=${1##*/}
+    local t=${s//./-}
+    local v=${2}
+    
+    local reason
+
+    prepare "$t"
+
+    reason="in \"expand\""
+    =printf "%45s -> %-45s: " ${S}/$s ./$D/$t
+
+    if run0 ${S}/$s ./$D/$t > ./$D/${t}.log 2>&1; then
+	if [[ -f $v ]]; then
+	    reason="in \"extra check\""
+	    if zsh $v ./$D/$t > ./$D/${t}.zsh.log 2>&1; then
+		echo "passed(expand+extra)"
+		return 0
+	    else
+		=printf "FAILED (%s:%s)\n" $reason $v
+	    fi
+	else
+	    echo "passed(expand)"
+	    return 0
+	fi
+    else
+	=printf "FAILED (%s)\n" $reason
+	return 1
+    fi
+}
+
+main()
+{
+    local tmp
+    local ext
+    local c=0
+
+    for ext in .src.rpm; do
+	for tmp in ${S}/*${ext}; do
+	    if ! run $tmp ${tmp%${ext}}.zsh; then
+		c=1
+	    fi
+	done
+    done
+
+    return $c
+}
+
+main

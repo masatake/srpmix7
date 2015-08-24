@@ -1,0 +1,11 @@
+oxygen-gtk-1.2.0-5.el7.src.rpm
+
+	This one doesn't have any tar.gz or patch file. This has only
+	a spec file.
+	URL: http://vault.centos.org/7.1.1503/os/Source/SPackages/oxygen-gtk-1.2.0-5.el7.src.rpm
+
+ledmon-0.79-3.el7.src.rpm
+
+	This one generates a patch backup file. This is suitable for
+	testing backup cleaner of srpmix7.
+	URL: http://vault.centos.org/7.1.1503/os/Source/SPackages/ledmon-0.79-3.el7.src.rpm

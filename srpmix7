@@ -1,0 +1,1186 @@
+#!/bin/zsh
+#
+# srpmix7 - the 7th implementation of srpmix
+#
+# Copyright (C) 2015 Red Hat, Inc.
+# Copyright (C) 2015 Masatake YAMATO
+#
+# Author: Masatake YAMATO <yamato@redhat.com>
+#
+# program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+readonly prefix=srpmix7
+readonly PREFIX=${(U)prefix}
+
+readonly c_version=7.0.0
+
+#
+# Protocols (sources standard directory layout)
+#
+readonly -x p_archives=archives
+readonly -x p_pre_build=pre-build
+readonly -x p_specs=specs
+readonly -x p_status=_status
+readonly -x p_bundles=_bundles
+readonly -x p_uname=_uname
+readonly -x p_uname_version=$p_uname/version
+readonly -x p_log=_log
+readonly -x p_tmp=__tmp
+
+readonly -x s_unknown=unknown
+readonly -x s_successful=successful
+readonly -x s_error=ERROR
+
+#
+# Rearrange zsh behavior
+#
+set -e
+enable -r repeat
+setopt EXTENDED_GLOB
+autoload -Uz catch
+autoload -Uz throw
+
+#
+# Rearrange the environment
+#
+export LANG=C
+export LC_ALL=C
+
+#
+# Initialize constants
+#
+readonly SELF=$0
+
+#
+# Initialize registries
+#
+typeset -A EVAR
+EVAR=(
+)
+
+typeset -A EVAR_DEFAULT
+EVAR_DEFAULT=(
+)
+
+typeset -a ICMD
+ICMD=(
+)
+
+typeset -A ICMD_DESC
+ICMD_DESC=(
+)
+
+EVAR[TMPDIR]="Directory where temorary directories are created"
+
+#
+# Utilities
+#
+indent()
+{
+    local i
+    local depth=${1:-1}
+    while IFS= read -r; do
+	repeat $depth ; do
+	    printf "	"
+	done
+	printf "%s\n" "$REPLY"
+    done
+}
+
+member()
+{
+    local elt=$1
+    local x
+    shift
+
+    for x in "$@"; do
+	if [ "$x" = "$elt" ]; then
+	    return 0
+	fi
+    done
+    return 1
+}
+
+is_function()
+{
+    -S- whence $1
+    return $?
+}
+
+backtrace()
+{
+    echo "STACK TRACE"
+    echo "-----------"
+    echo ${(F)funcstack[2,-1]}
+}
+
+is_empty_dir()
+{
+    local d=$1
+    local -a a
+
+    a=( $d/*(N) )
+    [[ $#a == 0 ]]
+    return $?
+}
+
+# Assert, Internal error
+-A-()
+{
+    local r
+    if "$@"; then
+	return 0
+    else
+	printf "INTERNAL ERROR: %s\n" "$*"
+    fi
+    exit 1
+}
+
+# error
+-E-()
+{
+
+    echo "[ERROR]" "$@"
+    backtrace | indent
+    exit 1
+} 1>&2
+
+-E%-()
+{
+    local fmt=$1
+    shift
+
+    printf "[ERROR] ${fmt}\n" "$@"
+    backtrace | indent
+    exit 1
+} 1>&2
+
+-W-()
+{
+    echo "[WARNING]" "$@"  1>&2
+}
+
+-W%-()
+{
+    local fmt=$1
+    shift
+
+    printf "[WARNING] ${fmt}\n" "$@"  1>&2
+}
+
+# silent
+-S-()
+{
+    "$@" > /dev/null 2>&1
+    return $?
+}
+
+#
+# Subcommand related operations
+#
+subcommand_enumerate()
+{
+    local t
+
+    for t in icmd xcmd; do
+	${t}_enumerate "$@"
+    done | sort
+}
+
+subcommand_exist_p()
+{
+    local c=$1
+    local t
+
+    for t in icmd xcmd; do
+	if ${t}_exist_p $c; then
+	    return 0
+	fi
+    done
+
+    return 1
+}
+
+subcommand_help()
+{
+    local c=$1
+    local t
+
+    for t in icmd xcmd; do
+	if ${t}_exist_p $c; then
+	    ${t}_help $c
+	    return $?
+	fi
+    done
+
+    return 1
+}
+
+subcommand_run()
+{
+    local c=$1
+    shift
+    local t
+
+
+    for t in icmd xcmd; do
+	if ${t}_exist_p $c; then
+	    ${t}_run $c "$@"
+	    return $?
+	fi
+    done
+
+    return 1
+}
+
+#
+# XCMD related operations
+#
+EVAR[XCMD_DIR]="Directory where external subcommand files are"
+EVAR_DEFAULT[XCMD_DIR]="/usr/libexec/${prefix}/xcmd"
+
+xcmd_exist_p()
+{
+    local c=$1
+    test -x ${XCMD_DIR}/$c
+}
+
+xcmd_enumerate()
+{
+    local v=$1
+    local x
+
+    for x in ${XCMD_DIR}/xcmd-*(.xN); do
+	if [ "$v" = "-v" ]; then
+	    =printf "%-20s %s\n" "${${x:t}/xcmd-/}" "$(${x} desc)"
+
+	else
+	    echo  $c
+	fi
+    done
+
+}
+
+xcmd_help()
+{
+    local c=$1
+
+    if xcmd_exist_p "${c}"; then
+	${XCMD_DIR}/$c help
+    else
+	-E- "No such external subcommand: ${c}"
+	return 1
+    fi
+}
+
+xcmd_run()
+{
+    local c=$1
+    shift 1
+    ${XCMD_DIR}/$c run "$@"
+}
+
+#
+# ICMD related operations
+#
+icmd_exist_p()
+{
+    local c=$1
+    local s
+
+    for s in run help; do
+	if ! is_function i_${c}_${s}; then
+	    return 1
+	fi
+    done
+
+    return 0
+}
+
+icmd_enumerate()
+{
+    local v=$1
+    local c
+    for c in ${ICMD[@]}; do
+	if [ "$v" = "-v" ]; then
+	    =printf "%-20s %s\n" "${c}" ${ICMD_DESC[$c]}
+	else
+	    echo $c
+	fi
+    done
+
+}
+
+icmd_help()
+{
+    local c=$1
+
+    i_${c}_help
+}
+
+icmd_run()
+{
+    local c=$1
+    shift 1
+    i_${c}_run "$@"
+}
+
+#
+# Environment variable related operations
+#
+evar_enumerate()
+{
+    local v=$1
+
+    local k
+    local n
+    for k in  ${(k)EVAR}; do
+	n="${PREFIX}_$k"
+	if [ "$v" = "-v" ]; then
+	    =printf "%-10s	<%s>\n" "${n}" ${(P)n}
+	else
+	    echo "${n}"
+	fi
+    done
+}
+
+#
+# Subcommand: inull
+#
+ICMD+=null
+ICMD_DESC[null]="do nothing (internal command example)"
+
+i_null_help()
+{
+    echo i_null_help
+}
+
+i_null_run()
+{
+    echo i_null_run
+}
+
+#
+# Subcommand: help
+#
+ICMD+=help
+ICMD_DESC[help]="show help message for subcommand"
+
+i_help_help()
+{
+    echo "$SELF help [SUBCOMMAND]"
+}
+
+i_help_run()
+{
+    local i=${${0#i_}%_run}
+    local c=$1
+
+    if [[ -z "$c" ]]; then
+	-E-  "$i: no subcommand given"
+    elif subcommand_exist_p "$c"; then
+	echo "${(U)c} subcommand usage:"
+	subcommand_help $c | indent
+    else
+	-E-  "$i: no such subcommand: $c"
+    fi
+}
+
+#
+# Subcommand: expand
+#
+ICMD+=expand
+ICMD_DESC[expand]="expand source code"
+
+typeset -A EXPAND_STYPE
+typeset -A EXPAND_DTYPE
+typeset -A EXPANDER
+
+i_expand_help()
+{
+    local k
+
+    =printf "%s\\\\\n" "$SELF expand [OPTIONS]"
+    {
+	=printf "  %s\\\\\n" "--src=[[STYPE]:]SLOCATION"
+	=printf "  %s\\\\\n" "[--dest=[[DTYPE]:]DLOCATOIN]"
+	=printf "  %s\n"	"[EXPANDER] [EXPANDER-OPTION]..."
+    } | indent
+    echo "OPTOINS:"
+    {
+	echo "	--action-when-error=abort|continue"
+	echo "	--debug"
+	echo "	--quit-after=optparse|prepare"
+	echo "	--trace"
+    }
+    echo "STYPE:"
+    for k in ${(k)EXPAND_STYPE}; do
+	=printf "%-10s	%s\n" "$k" "${EXPAND_STYPE[$k]}" | indent
+    done
+
+    echo "DTYPE:"
+    for k in ${(k)EXPAND_DTYPE}; do
+	=printf "%-10s	%s\n" $k "${EXPAND_DTYPE[$k]}" | indent
+    done
+
+    echo "EXPANDER:"
+    for k in ${(k)EXPANDER}; do
+	=printf "%-10s	%s\n" $k "${EXPANDER[$k]}" | indent
+    done
+
+}
+
+#
+# TODO
+# --help-expander=...
+# --help-stype=...
+# --help-dtype=...
+#
+
+#
+# Return value
+# 0: successful
+# 1: error before expanding
+# 2: error in expanding
+# 3: error after expanding
+#
+# If the return value is 3, it must be recorded somewhere other place.
+i_expand_run()
+{
+    local -a args
+    args=( "$@" )
+    local c=${${0#i_}%_run}
+    local opt
+    local next
+    local action_when_error=continue
+
+    local src
+    local stype
+    local slocation
+    local -r stype_default=file
+
+    local dest
+    local dtype
+    local dlocation
+    local -r dtype_default=dir
+
+    local expander
+    local expander_default=srpm
+
+    local checker
+
+    local debug
+    local quit_after
+
+    local t
+    local s
+    local r
+
+    __SUBCOMMAND_INIT__ $c
+
+    __SUBCOMMAND_PRE_PARSE_ARGS__ $c
+    while [ $# -gt 0 ]; do
+	case $1 in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		1=( "$opt" "$next" "$@" )
+		;;
+	    (--action-when-error)
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $1 is not given"
+		else
+		    case $2 in
+			(abort|continue) action_when_error=$2;;
+			(*) -E- "$c: unexpected value for $1: $2";;
+		    esac
+		fi
+		shift 2
+		;;
+	    (--debug|-d)
+		debug=yes
+		shift
+		;;
+	    (--dest)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		else
+		    dest=$2
+		fi
+		shift 2
+		if [[ -z "$dest" ]]; then
+		    -E- "$c: value for $opt is not given"
+		fi
+		dtype=${dest%%:*}
+		if [[ "$dtype" == "$dest" ]]; then
+		    dtype=${dtype_default}
+		fi
+		dlocation=${dest#*:}
+		if [[ -z "$dlocation" ]]; then
+		    if [[ "$dtype" == "${dtype_default}" ]]; then
+			dlocation=.
+		    else
+			-E- "$c: location part of $opt value is not given"
+		    fi
+		fi
+
+		if ! member "$dtype" ${(k)EXPAND_DTYPE}; then
+		    -E- "$c: no such dest type: $dtype"
+		fi
+
+		;;
+	    (--quit-after)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		else
+		    quit_after=$2
+		fi
+		shift 2
+		case "$quit_after" in
+		    (optparse|prepare)
+		    ;;
+		    (*)
+			-E- "$c: unexpected value for $opt"
+			;;
+		esac
+		;;
+	    (--src)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		else
+		    src=$2
+		fi
+		shift 2
+		if [[ -z "$src" ]]; then
+		    -E- "$c: vale for $opt is not given"
+		fi
+		stype=${src%%:*}
+		if [[ "$stype" == "$src" ]]; then
+		    stype=${stype_default}
+		fi
+		slocation=${src#*:}
+		if [[ -z "$slocation" ]]; then
+		    -E- "$c: location part of $opt value is not given"
+		fi
+
+		if ! member "$stype" ${(k)EXPAND_STYPE}; then
+		    -E- "$c: no such src type: $stype"
+		fi
+
+		if is_function "x_src_${stype}_check"; then
+		    "x_src_${stype}_check" "$slocation"
+		fi
+
+		case "$slocation" in
+		    (*.src.rpm)
+			expander_default=srpm
+			;;
+		    (*.lcopy)
+			expander_default=lcopy
+			;;
+		esac
+		;;
+	    (--trace|-x)
+		set -x
+		shift
+		;;
+	    (--*)
+		: ${expander:=${expander_default}}
+		break
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		expander=$1
+		shift
+		if ! member "$expander" ${(k)EXPANDER}; then
+		    -E- "$c: unknown expander: $expander"
+		fi
+		break
+		;;
+	esac
+    done
+
+
+    if [[ -z "$src" ]]; then
+	-E- "$c: no SOURCE is given"
+    fi
+
+    if [[ -z "$dtype" && -z "$dlocation" ]]; then
+	dtype=dir
+	dlocation=.
+    elif [[ -z "$dtype" ]]; then
+	dtype=dir
+    elif [[ -z "$dlocation" && "$dtype" == "dir" ]]; then
+	dlocation=.
+    fi
+
+    if [[ -z "$dtype" || -z "$dlocation" ]]; then
+	-E- "$c: no DESTINATION is given"
+    fi
+
+    if is_function "x_dest_${dtype}_check"; then
+	"x_dest_${dtype}_check" "$dlocation"
+    fi
+
+    if [[ -z "$expander" ]]; then
+	expander=${expander_default}
+    fi
+
+    if [[ "${debug}" == "yes" ]]; then
+	echo stype: $stype
+	echo slocation: $slocation
+	echo dtype: $dtype
+	echo dlocation: $dlocation
+	echo expander: $expander
+    fi
+
+    if [[ "$quit_after" == "optparse" ]]; then
+	exit 0
+    fi
+
+    __SUBCOMMAND_POST_PARSE_ARGS__ $c
+
+    {
+
+	if ! t=$(mktemp --tmpdir --directory ${SELF}-EXPAND-${expander}.XXXXXXXXXX) ; then
+	    throw Creation
+	elif [[ "${debug}" == "yes" ]]; then
+	    echo tmpdir: $t
+	fi
+
+	if ! x_prepare $t; then
+	    throw Preparation
+	else
+	    {
+		echo "${c_version}" > $t/$p_uname/x_version &&
+		echo "${expander}"  > $t/$p_uname/expander  &&
+		echo "${args[@]}"   > $t/$p_uname/x_args    &&
+		echo "${stype}"     > $t/$p_uname/x_stype   &&
+		echo "${slocation}" > $t/$p_uname/x_slocation &&
+		echo "${dtype}"     > $t/$p_uname/x_dtype &&
+		echo "${dlocation}" > $t/$p_uname/x_dlocation
+	    } || throw Preparation
+	fi
+	if [[ "$quit_after" == "prepare" ]]; then
+	    exit 0
+	fi
+
+	__SUBCOMMAND_PRE_RUN__ $c
+	set +e
+	x_expand_${expander}_run "$slocation" "$t" "$@"
+	s=$?
+	set -e
+	__SUBCOMMAND_POST_RUN__ $c $s
+    } always {
+	local delayed_emsg
+
+	if catch Creation; then
+	    r=1
+	    if [[ "$action_when_error" == continue ]]; then
+		echo "$s_error" "(failed to create working directory for expanding)" > $t/.$p_status
+	    else
+		delayed_emsg="$c: failed to create working directory for expanding"
+	    fi
+	elif catch Prepare; then
+	    r=1
+	    if [[ "$action_when_error" == continue ]]; then
+		echo "$s_error" "(failed to prepare a directory for expansion)" > $t/.$p_status
+	    else
+		delayed_emsg="$c: failed to prepare a directory for expansion"
+	    fi
+	else
+	    if [[ "$s" == 0 ]]; then
+		r=0
+		echo $s_successful > $t/.$p_status
+	    else
+		r=2
+	    fi
+	    if [[ "$s" == 0 || "$action_when_error" == continue ]]; then
+		if x_dest_${dtype}_transfer "$t" "$dlocation"; then
+		    x_dest_${dtype}_commit "$dlocation"
+		else
+		    delayed_emsg="$c: failed to transfer expanded data to $dtype:$dlocation from $t"
+		    r=3
+		fi
+	    fi
+	fi
+
+	if [[ "${debug}" == "yes" ]]; then
+	    :
+	else
+	    rm -rf "$t"
+	fi
+
+	if [[ -n "${delayed_emsg}" ]]; then
+	    -E- "${delayed_emsg}"
+	fi
+    }
+
+    __SUBCOMMAND_FINI__ $c $r
+
+    return $r
+}
+
+x_prepare()
+{
+    local d=$1
+    local elt
+
+    for elt in $p_archives $p_pre_build $p_specs $p_bundles $p_uname $p_log $p_tmp; do
+	if ! mkdir ${d}/${elt}; then
+	    return 1
+	fi
+    done
+
+    elt=.$p_status
+    echo 'unknown' > ${d}/${elt}
+
+    return 0
+}
+
+EXPAND_STYPE[file]="regular file"
+x_src_file_check()
+{
+    local slocation=$1
+
+    if [[ ! -e "$slocation" ]]; then
+	-E- "$c: no such file: $slocation"
+    elif [[ ! -r "$slocation" ]]; then
+	-E- "$c: file unreadable: $slocation"
+    fi
+}
+
+EXPAND_DTYPE[dir]="sources standard directory layout"
+x_dest_dir_check()
+{
+    local dlocation=$1
+
+    if [[ ! -e "$dlocation" ]]; then
+	-E- "$c: no such directory: $dlocation"
+    elif [[ ! -d "$dlocation" ]]; then
+	-E- "$c: not directory: $dlocation"
+    elif [[ ! -w "$dlocation" ]]; then
+	-E- "$c: directory unwritable: $dlocation"
+    fi
+}
+
+x_dest_dir_transfer()
+{
+    local src=$1
+    local dest=$2
+    local s=0
+
+    for x in ${src}/* ${src}/._*; do
+	if [ "${x}" = "${src}/"'*' ]; then
+	    s=0
+	    break
+	fi
+	if [[ "${x:t}" = __* ]]; then
+	    # __tmp should not be transferred.
+	    continue
+	fi
+
+	if ! cp -ar $x "${dest}"; then
+	    s=1
+	    break
+	fi
+    done
+
+    return $s
+}
+
+x_dest_dir_commit()
+{
+    local dest=$1
+    local s=0
+
+    mv ${dest}/.$p_status ${dest}/$p_status
+    return $?
+}
+
+EXPANDER[srpm]="source rpm"
+x_expand_srpm_run()
+{
+    local srpm=$1
+    local t=$2
+    shift 2
+
+    local tag
+    local t_spec
+    local s
+
+    rpm --version  > $t/$p_uname/x_srpm_rpm_command_version
+    echo "$@"  > $t/$p_uname/x_srpm_args
+
+    echo "install-build-pre" > $t/$p_uname/x_srpm_method
+    
+    for tag in $(rpm --nosignature --querytags); do
+	rpm --nosignature -qp --queryformat '[%{'${tag}'}\n]' "${srpm}" \
+	    > $t/$p_specs/srpm_query_${tag//\//_/}
+    done
+
+    {
+	rpm --nosignature --define="_topdir $t/$p_tmp" -ivh "${srpm}" \
+	    > "$t/$p_log/srpm-rpm-ivh.log" 2>&1
+	s=$?
+	echo $s > "$t/$p_log/srpm-rpm-ivh.status"
+	if [[ $s != 0 ]]; then
+	    throw RPM_I
+	fi
+
+	rpmbuild --define="_topdir $t/$p_tmp" --nodeps --target=x86_64 -bp $t/$p_tmp/SPECS/*.spec \
+		 > "$t/$p_log/srpm-rpmbuild-bp.log" 2>&1
+	s=$?
+	echo $s > "$t/$p_log/srpm-rpmbuild-bp.status"
+	if [[ $s != 0 ]]; then
+	    throw RPMBUILD_BP
+	fi
+    } always {
+	mv $t/$p_tmp/SPECS/*.spec   $t/$p_specs/srpm.spec
+
+	if [[ -d "$t/$p_tmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_tmp/SOURCES" ); then
+	   mv $t/$p_tmp/SOURCES/*      $t/$p_archives
+	fi
+
+	if [[ -d $t/$p_tmp/BUILD ]] && ( ! is_empty_dir $t/$p_tmp/BUILD ); then
+	   mv $t/$p_tmp/BUILD/*     $t/$p_pre_build
+	fi
+    }
+
+    if [[ -f "$t/$p_log/srpm-rpmbuild-bp.log" ]]; then
+	x_expand_srpm_clean_patch_backupfile "$t/$p_pre_build" "$t/$p_log/srpm-rpmbuild-bp.log" \
+					     > "$t/$p_log/srpm-clean-patch-backupfile.log"
+    fi
+    x_expand_srpm_readable "$t/$p_pre_build"
+
+    # x_expand_srpm_owner
+
+    return $s
+}
+
+x_expand_srpm_readable()
+{
+    local target=$1
+
+    find $target -type f -exec chmod a+r '{}' '+'
+    find $target -type d -exec chmod a+x '{}' '+'
+}
+
+x_expand_srpm_clean_patch_backupfile()
+{
+    local target=$1
+    local hint=$2
+
+    local suffix
+    local patched_file
+    local backup_file
+    local f
+    while IFS= read -r; do
+	if [[ "$REPLY" =~ '.*/patch[[:space:]]{1,}.*[[:space:]]{1,}--suffix[[:space:]]{1,}([^[:space:]]{1,}).*' ]]; then
+	    suffix=${REPLY[${mbegin[1]}, ${mend[1]}]}
+	elif [[ "$REPLY" =~ '^patching file (.{1,})$' ]]; then
+	    patched_file=${REPLY[${mbegin[1]}, ${mend[1]}]}
+	    if [[ -z "${suffix}" ]]; then
+		continue
+	    fi
+	    backup_file=${patched_file}${suffix}
+
+	    for f in ${target}/**/${backup_file}(N); do
+		      rm "$f" && echo "${f#${target}/}"
+	    done
+	fi
+    done < ${hint}
+}
+
+#
+# Main program
+#
+
+#
+# Hooks
+#
+__INIT__()
+{
+    XCMD_DIR=${SRPMIX7_XCMD_DIR:-${EVAR_DEFAULT[XCMD_DIR]}}
+    if [[ ! -d "${XCMD_DIR}" ]]; then
+	-E- "No such directory: SRPMIX7_XCMD_DIR=${XCMD_DIR}"
+    elif ! XCMD_DIR=$(realpath -q "${XCMD_DIR}"); then
+	-E- "Cannot resolve path: XCMD_DIR=${XCMD_DIR}"
+    else
+	SRPMIX7_XCMD_DIR=${XCMD_DIR}
+    fi
+}
+
+__PRE_PARSE_ARGS__()
+{
+    :
+}
+
+__POST_PARSE_ARGS__()
+{
+    :
+}
+
+
+__PRE_RUN_SUBCOMMAND__()
+{
+    :
+}
+
+__SUBCOMMAND_INIT__()
+{
+    :
+}
+
+
+__SUBCOMMAND_PRE_PARSE_ARGS__()
+{
+    :
+}
+
+__SUBCOMMAND_POST_PARSE_ARGS__()
+{
+    :
+}
+
+__SUBCOMMAND_PRE_RUN__()
+{
+    :
+}
+
+__SUBCOMMAND_POST_RUN__()
+{
+    :
+}
+
+__SUBCOMMAND_FINI__()
+{
+    :
+}
+
+__POST_RUN_SUBCOMMAND__()
+{
+    :
+}
+
+__FINI__()
+{
+    :
+}
+
+help()
+{
+    local r=$1
+
+    printf "Command usage:\n"
+    =printf "	%-40s %s\n" "$SELF -h|--help"             "show this help message"
+    =printf "	%-40s %s\n" "$SELF [OPTIONS] SUBCOMMAND" "run SUBCOMMAND"
+    =printf "	%-40s %s\n" "$SELF help SUBCOMMAND"      "show help messages about SUBCOMMAND"
+
+    echo
+    printf "Options:\n"
+    =printf "	%-20s %s\n" "-x|--trace"      "trace the execution"
+
+    echo
+    printf "Subcommands:\n"
+    subcommand_enumerate -v | indent
+
+    echo
+    printf "Environment variables:\n"
+    evar_enumerate -v | indent
+
+    echo
+    exit $r
+}
+
+run()
+{
+    local c
+    local r
+
+    __INIT__
+
+    __PRE_PARSE_ARGS__
+
+    if [[ $# -eq 0 ]]; then
+	help 1 1>&2
+    else
+	case "$1" in
+	    (-h|--help)
+		help 0
+		;;
+	    (-x|--trace)
+		set -x
+		shift
+		;;
+	    (-*)
+		-E%- "unknown option: %s\n" "$1"
+		;;
+	    (*)
+		;;
+	esac
+    fi
+
+    __POST_PARSE_ARGS__
+
+    if ! subcommand_exist_p "$1"; then
+	-E%- "unknown subcommand: %s\n" "$1"
+    else
+	c="$1"
+	shift
+    fi
+
+    __PRE_RUN_SUBCOMMAND__
+
+    subcommand_run "$c" "$@"
+    r=$?
+
+    __POST_RUN_SUBCOMMAND__
+
+
+    __FINI__
+
+    return $r
+}
+
+run "$@"
+
+#
+# FILE/DIRECTORY LAYOUT SPECIFICATION
+# ======================================================================
+#
+# The 7th raw directory specification
+# ----------------------------------------------------------------------
+# *archives* directory
+#
+#	the original data and patches
+#
+# *pre-build* directory/symlink
+#
+#	synthesized data for compiler
+#       A symlink is used in the case nothing is synthesized.
+#
+# *specs* directory
+#
+#       Meta information about the source code.
+#       The contents are upto an expander.
+#       e.g. specs.spec in srpmix5 is renamed to
+#            *specs*/srpm.spec.
+#
+#
+# *_status* file
+#
+#       The result of expansion/synthesizing.
+#
+#       The file content is one of following.
+#
+#	`unknown`
+#
+#                 The expansion is failed too early stage to record the
+#                 status. It implies the issue in th environment of expansion.
+#
+#	`successful`
+#
+#                 The expansion is successfully done. Expanded/synthesized
+#                 source code are reliable to source code analysis/reading.
+#
+#	`error(REASON)`
+#
+#                 The expansion is failed in a stage of expansion or
+#                 synthesizing.
+#                 Be careful: expanded/synthesized source code are NOT
+#                 reliable to use in your job. More information about the
+#                 error can be found in _log directory (if available).
+#
+#       If this *_status* doesn't exist, it means the expanding/synthesizing
+#       is in progress. You and your tool should not touch the source code here.
+#
+# *_log* directory
+#
+#       Log files generated during expanding and synthesizing.
+#
+# *_bundles*
+#
+#       Extra files generated by hook commands/functions(postprocessor, pp).
+#       Typical usage of this directory is storing search indexes for the
+#       source code. That was *plugins* directory in srpmix5.
+#
+#       *_bundles* has its own layout:
+#
+#	*_bundles*/*pp name* directory
+#
+#		*_version* file
+#
+#			The version information of pp.
+#
+#		*_status* file
+#
+#                       The pp execution status.
+#
+# *_uname* directory
+#
+#	Information about srpmix7 itself.
+#
+#       *version* file
+#
+#             The version information of srpmix7.
+#
+# *__tmp* directory
+#
+#	Working area of srpmix7. You should not see these.
+#
+#
+# *vanilla* symlink in srpmix5 is gone.
+#
+
+# The 7th upper directory specification
+# ----------------------------------------------------------------------
+# ...
+
+
+# Interface between main and subcommand
+# ----------------------------------------------------------------------
+#
+# There are two ways to implement a subcommand.
+#
+# A. xcmd - external subcommand
+#
+#    An executable XCMD must exist at ${SRPMIX7_XCMD_DIR}/xcmd-${XCMD}.
+#
+#    XCMD takes following subcommands:
+#
+#    A.1 help
+#    A.2 desc
+#    A.3 run "$@"
+#
+#
+# B. icmd - internal subcommand
+#
+#    A ICMD command is implemented as zsh functions:
+#
+#    B.1 ${ICMD}_help
+#    B.2 ${ICMD}_run
+#
+#
