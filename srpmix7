@@ -858,6 +858,13 @@ x_expand_srpm_run()
 	    throw RPMBUILD_BP
 	fi
     } always {
+
+	if catch RPM_I; then
+	    =printf "%s (failed in rpm -ivh %s)" $s_error ${srpm##*/} > $t/.$p_status
+	elif catch RPMBUILD_BP; then
+	    =printf "%s (failed in rpmbuild -bp srpm.spec)" $s_error > $t/.$p_status
+	fi
+
 	mv $t/$p_tmp/SPECS/*.spec   $t/$p_specs/srpm.spec
 
 	if [[ -d "$t/$p_tmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_tmp/SOURCES" ); then
