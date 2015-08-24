@@ -41,7 +41,8 @@ readonly -x p_tmp=__tmp
 
 readonly -x s_unknown=unknown
 readonly -x s_successful=successful
-readonly -x s_error=ERROR
+readonly -x s_early_error=ERROR
+readonly -x s_error=error
 
 #
 # Rearrange zsh behavior
@@ -699,14 +700,14 @@ i_expand_run()
 	if catch Creation; then
 	    r=1
 	    if [[ "$action_when_error" == continue ]]; then
-		echo "$s_error" "(failed to create working directory for expanding)" > $t/.$p_status
+		echo "$s_early_error" "(failed to create working directory for expanding)" > $t/.$p_status
 	    else
 		delayed_emsg="$c: failed to create working directory for expanding"
 	    fi
 	elif catch Prepare; then
 	    r=1
 	    if [[ "$action_when_error" == continue ]]; then
-		echo "$s_error" "(failed to prepare a directory for expansion)" > $t/.$p_status
+		echo "$s_early_error" "(failed to prepare a directory for expansion)" > $t/.$p_status
 	    else
 		delayed_emsg="$c: failed to prepare a directory for expansion"
 	    fi
