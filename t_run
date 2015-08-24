@@ -49,8 +49,12 @@ run()
 	    return 0
 	fi
     else
-	=printf "FAILED (%s)\n" $reason
-	return 1
+	case $status in
+	    (1) =printf "ERROR (%s)\n" $reason
+		return 1;;
+	    (2) =printf "error (%s)\n" $reason
+		return 2;;
+	esac
     fi
 }
 
