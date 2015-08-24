@@ -864,7 +864,7 @@ x_expand_srpm_run()
 	   mv $t/$p_tmp/SOURCES/*      $t/$p_archives
 	fi
 
-	if [[ -d $t/$p_tmp/BUILD ]] && ( ! is_empty_dir $t/$p_tmp/BUILD ); then
+	if [[ -d "$t/$p_tmp/BUILD" ]] && ( ! is_empty_dir "$t/$p_tmp/BUILD" ); then
 	   mv $t/$p_tmp/BUILD/*     $t/$p_pre_build
 	fi
     }
