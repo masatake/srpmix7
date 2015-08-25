@@ -120,7 +120,7 @@ member()
     return 1
 }
 
-is_function()
+is_available()
 {
     -S- whence $1
     return $?
@@ -308,7 +308,7 @@ icmd_exist_p()
     local s
 
     for s in run help; do
-	if ! is_function i_${c}_${s}; then
+	if ! is_available i_${c}_${s}; then
 	    return 1
 	fi
     done
@@ -594,7 +594,7 @@ i_expand_run()
 		    -E- "$c: no such src type: $stype"
 		fi
 
-		if is_function "x_src_${stype}_check"; then
+		if is_available "x_src_${stype}_check"; then
 		    "x_src_${stype}_check" "$slocation"
 		fi
 
@@ -647,7 +647,7 @@ i_expand_run()
 	-E- "$c: no DESTINATION is given"
     fi
 
-    if is_function "x_dest_${dtype}_check"; then
+    if is_available "x_dest_${dtype}_check"; then
 	"x_dest_${dtype}_check" "$dlocation"
     fi
 
