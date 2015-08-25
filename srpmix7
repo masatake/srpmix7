@@ -26,6 +26,12 @@ readonly SELF=${0##*/}
 readonly c_version=7.0.0
 
 #
+# TODO
+#    subcommands: deploy(kicked from systemd unit), analyze-log, 
+#                 attach(generate bundle), spider(?), gc-raw, gc-upper, delete
+#
+#
+#
 # Namespace
 #
 # c_: constant value in files in "raw directory"
@@ -469,9 +475,16 @@ i_expand_help()
 #
 
 #
+# TODO:
+#                    stype: yumdownloader,apt-get,git, wget
+#                 expander: lcopy, deb, vanillax, rpm
+# other interesting things: npm, cpan, pypi,
+#
+
+#
 # Return value
 # 0: successful
-# 1: error before expanding
+# 1: error before expanding (critical error)
 # 2: error in expanding
 # 3: error after expanding
 #
@@ -686,10 +699,13 @@ i_expand_run()
 	exit 0
     fi
 
+    #
+    # TODO: check the status of $dlocation
+    #       if not expanded yet, lock the directory.
+    #
     __SUBCOMMAND_POST_PARSE_ARGS__ $c
 
     {
-
 	if ! t=$(mktemp --tmpdir --directory ${SELF}-EXPAND-${expander}.XXXXXXXXXX) ; then
 	    throw Creation
 	elif [[ "${debug}" == "yes" ]]; then
@@ -746,6 +762,9 @@ i_expand_run()
 	    if [[ "$s" == 0 || "$action_when_error" == continue ]]; then
 		if x_dest_${dtype}_transfer "$t" "$dlocation"; then
 		    x_dest_${dtype}_commit "$dlocation"
+		    #
+		    # TODO; COMMIT_HOOK
+		    #
 		else
 		    delayed_emsg="$c: failed to transfer expanded data to $dtype:$dlocation from $t"
 		    r=3
@@ -769,6 +788,9 @@ i_expand_run()
     return $r
 }
 
+#
+# TODO: Allow symlink from pre-build to archive
+#
 x_prepare()
 {
     local d=$1
@@ -861,7 +883,9 @@ x_expand_srpm_run()
     echo "$@"  > $t/$p_uname/x_srpm_args
 
     echo "install-build-pre" > $t/$p_uname/x_srpm_method
-    
+    #
+    # TODO: Separate mock method and ibp method.
+    #
     for tag in $(rpm --nosignature --querytags); do
 	rpm --nosignature -qp --queryformat '[%{'${tag}'}\n]' "${srpm}" \
 	    > $t/$p_specs/srpm_query_${tag//\//_/}
