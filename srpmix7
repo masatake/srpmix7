@@ -876,7 +876,7 @@ x_expand_srpm_run()
     shift 2
 
     local tag
-    local t_spec
+    local -a t_spec
     local s
 
     rpm --version  > $t/$p_uname/x_srpm_rpm_command_version
@@ -900,7 +900,19 @@ x_expand_srpm_run()
 	    throw RPM_I
 	fi
 
-	rpmbuild --define="_topdir $t/$p_tmp" --nodeps --target=x86_64 -bp $t/$p_tmp/SPECS/*.spec \
+	#
+	# rhev-agent-2.3.16-3.el6.src.rpm contains gdm*.src.rpm as SOURCE1.
+	# So two spec files, one for rhev-agent and one for gdm are in SPECS directory.
+	# This becomes a trouble whev moving SPECS/*.spec  specs/srpm.spec.
+	# So The spec file name is recorded to t_spec here. The spec file for
+	# gdm generated while rpmbuild-bp is throws away when moving.
+	#
+	t_spec=( $t/$p_tmp/SPECS/*.spec(N) )
+	if [[ ${#t_spec} != 1 ]]; then
+	    throw WRONG_SPEC_NUM
+	fi
+
+	rpmbuild --define="_topdir $t/$p_tmp" --nodeps --target=x86_64 -bp ${t_spec[1]} \
 		 > "$t/$p_log/srpm-rpmbuild-bp.log" 2>&1
 	s=$?
 	echo $s > "$t/$p_log/srpm-rpmbuild-bp.status"
@@ -911,11 +923,13 @@ x_expand_srpm_run()
 
 	if catch RPM_I; then
 	    =printf "%s (failed in rpm -ivh %s)" $s_error ${srpm##*/} > $t/.$p_status
+	elif catch WRONG_SPEC_NUM; then
+	    =printf "%s (wrong number of spec file(s): ${#t_spec})" $s_error > $t/.$p_status
 	elif catch RPMBUILD_BP; then
 	    =printf "%s (failed in rpmbuild -bp srpm.spec)" $s_error > $t/.$p_status
 	fi
 
-	mv $t/$p_tmp/SPECS/*.spec   $t/$p_specs/srpm.spec
+	mv "${t_spec[1]}"   $t/$p_specs/srpm.spec
 
 	if [[ -d "$t/$p_tmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_tmp/SOURCES" ); then
 	   mv $t/$p_tmp/SOURCES/*      $t/$p_archives
