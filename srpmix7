@@ -20,11 +20,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
 readonly prefix=srpmix7
 readonly PREFIX=${(U)prefix}
-
+readonly SELF=${0##*/}
 readonly c_version=7.0.0
+
+#
+# Namespace
+#
+# c_: constant value in files in "raw directory"
+# p_: file/directory names in files in "raw directory"
+# i_: internal subcommand
+# x_: expander
+# __: hook
+#
+
 
 #
 # Protocols (sources standard directory layout)
@@ -58,11 +68,6 @@ autoload -Uz throw
 #
 export LANG=C
 export LC_ALL=C
-
-#
-# Initialize constants
-#
-readonly SELF=${0##*/}
 
 #
 # Initialize registries
