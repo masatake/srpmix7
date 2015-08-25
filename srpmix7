@@ -138,9 +138,9 @@ require()
     local f=$2
 
     if [[ -n "$f" ]]; then
-	is_avaiable $1 || -E- "$f requires $c"
+	is_available $c || -E- "$f requires $c"
     else
-	is_avaiable $1 || -E- "$c is not found"
+	is_available $c || -E- "$c is not found"
     fi
 }
 
