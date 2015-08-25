@@ -126,6 +126,18 @@ is_available()
     return $?
 }
 
+require()
+{
+    local c=$1
+    local f=$2
+
+    if [[ -n "$f" ]]; then
+	is_avaiable $1 || -E- "$f requires $c"
+    else
+	is_avaiable $1 || -E- "$c is not found"
+    fi
+}
+
 backtrace()
 {
     echo "STACK TRACE"
@@ -655,6 +667,11 @@ i_expand_run()
 	expander=${expander_default}
     fi
 
+    checker="x_expand_${expander}_check"
+    if is_available "$checker"; then
+	"$checker"
+    fi
+
     if [[ "${debug}" == "yes" ]]; then
 	echo stype: $stype
 	echo slocation: $slocation
@@ -926,6 +943,12 @@ x_expand_srpm_clean_patch_backupfile()
 	    done
 	fi
     done < ${hint}
+}
+
+x_expand_srpm_check()
+{
+    require rpm
+    require rpmbuild
 }
 
 #
