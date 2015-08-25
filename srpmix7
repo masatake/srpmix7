@@ -903,7 +903,7 @@ x_expand_srpm_run()
     }
 
     if [[ -f "$t/$p_log/srpm-rpmbuild-bp.log" ]]; then
-	x_expand_srpm_clean_patch_backupfile "$t/$p_pre_build" "$t/$p_log/srpm-rpmbuild-bp.log" \
+	x_expand_srpm_clean_patch_backup_files "$t/$p_pre_build" "$t/$p_log/srpm-rpmbuild-bp.log" \
 					     > "$t/$p_log/srpm-clean-patch-backupfile.log"
     fi
     x_expand_srpm_readable "$t/$p_pre_build"
@@ -921,7 +921,7 @@ x_expand_srpm_readable()
     find $target -type d -exec chmod a+x '{}' '+'
 }
 
-x_expand_srpm_clean_patch_backupfile()
+x_expand_srpm_clean_patch_backup_files()
 {
     local target=$1
     local hint=$2
