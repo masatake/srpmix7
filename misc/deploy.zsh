@@ -94,6 +94,8 @@ run ()
 	if SRPMIX7_XCMD_DIR=$XCMD ${SRPMIX7} expand --src file:$s --dest dir:${sources_c_n_evr} srpm; then
 	    p_green .
 	    (( successful_count += 1 ))
+	    (( msg_count += 1 ))
+	    newline_maybe $msg_count &&  msg_count=0
 	else
 	    case $status in
 		(1) p_red F
