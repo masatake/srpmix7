@@ -606,8 +606,9 @@ i_expand_run()
 		    -E- "$c: no such src type: $stype"
 		fi
 
-		if is_available "x_src_${stype}_check"; then
-		    "x_src_${stype}_check" "$slocation"
+		checker="x_src_${stype}_check"
+		if is_available $checker; then
+		    $checker "$slocation"
 		fi
 
 		case "$slocation" in
@@ -659,8 +660,9 @@ i_expand_run()
 	-E- "$c: no DESTINATION is given"
     fi
 
-    if is_available "x_dest_${dtype}_check"; then
-	"x_dest_${dtype}_check" "$dlocation"
+    checker="x_dest_${dtype}_check"
+    if is_available $checker; then
+	"$checker" "$dlocation"
     fi
 
     if [[ -z "$expander" ]]; then
