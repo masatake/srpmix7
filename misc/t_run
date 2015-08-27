@@ -8,7 +8,7 @@ prepare()
     local t=$1
     mkdir -p ./$D
     mkdir -p ./$D/$t
-    rm -f ./$D/${t}.log    
+    rm -f ./$D/${t}.log
     rm -f ./$D/${t}.zsh.log
     rm -rf ./$D/$t/*(N)
 }
@@ -27,29 +27,39 @@ run()
     local s=${1##*/}
     local t=${s//./-}
     local v=${2}
+    local log=./$D/${t}.log
 
     prepare "$t"
 
 
-    =printf "%45s -> %-45s: " ${S}/$s ./$D/$t
+    =printf "* %45s: " ${S}/$s
+    =printf "%45s -> %-45s\n" ${S}/$s ./$D/$t >> ${log}
 
-    if run0 ${S}/$s ./$D/$t > ./$D/${t}.log 2>&1; then
+    if run0 ${S}/$s ./$D/$t >> ${log} 2>&1; then
 	if [[ -f $v ]]; then
-	    if zsh $v ./$D/$t > ./$D/${t}.zsh.log 2>&1; then
-		echo "passed(expand+extra)"
+	    if zsh $v ./$D/$t >> ${log} 2>&1; then
+		tee -a ${log} <<<  "passed(expand+extra)"
 		return 0
 	    else
-		echo "ERROR (extra check with $v)"
+		tee -a ${log} <<< "ERROR (extra check with $v)"
 	    fi
 	else
-	    echo "passed(expand)"
+	    tee -a ${log} <<< "passed(expand)"
 	    return 0
 	fi
     else
 	case $status in
-	    (1) echo "ERROR (prepare,BUG?)"
+	    (1) tee -a ${log} <<< "ERROR (prepare,BUG?)"
+		echo
+		=printf "%40s\n" -------
+		=printf "%40s\n" "DETAILS"
+		=printf "%40s\n" -------
+		echo
+		tail -n +2 ${log} | head -n -1
+		echo
+		echo
 		return 1;;
-	    (2) echo "error (expand)"
+	    (2) tee -a ${log} <<< "error (expand)"
 		return 2;;
 	esac
     fi
