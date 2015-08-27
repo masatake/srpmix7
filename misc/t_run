@@ -19,7 +19,7 @@ run0()
     local src=$1
     local dest=$2
 
-    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --src $src --dest $dest
+    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype file --sloc $src --dtype dir --dloc $dest
 }
 
 run()
@@ -27,22 +27,19 @@ run()
     local s=${1##*/}
     local t=${s//./-}
     local v=${2}
-    
-    local reason
 
     prepare "$t"
 
-    reason="in \"expand\""
+
     =printf "%45s -> %-45s: " ${S}/$s ./$D/$t
 
     if run0 ${S}/$s ./$D/$t > ./$D/${t}.log 2>&1; then
 	if [[ -f $v ]]; then
-	    reason="in \"extra check\""
 	    if zsh $v ./$D/$t > ./$D/${t}.zsh.log 2>&1; then
 		echo "passed(expand+extra)"
 		return 0
 	    else
-		=printf "FAILED (%s:%s)\n" $reason $v
+		echo "ERROR (extra check with $v)"
 	    fi
 	else
 	    echo "passed(expand)"
@@ -50,9 +47,9 @@ run()
 	fi
     else
 	case $status in
-	    (1) =printf "ERROR (%s)\n" $reason
+	    (1) echo "ERROR (prepare,BUG?)"
 		return 1;;
-	    (2) =printf "error (%s)\n" $reason
+	    (2) echo "error (expand)"
 		return 2;;
 	esac
     fi

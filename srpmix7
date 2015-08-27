@@ -27,7 +27,7 @@ readonly c_version=7.0.0
 
 #
 # TODO
-#    subcommands: deploy(kicked from systemd unit), analyze-log, 
+#    subcommands: deploy(kicked from systemd unit), analyze-log,
 #                 attach(generate bundle), spider(?), gc-raw, gc-upper, delete
 #
 #
@@ -437,11 +437,10 @@ i_expand_help()
 {
     local k
 
-    =printf "%s\\\\\n" "$SELF expand [OPTIONS]"
+    =printf "%s\\\\\n" "$SELF expand [OPTIONS] EXPANDER [EXPANDER-OPTION]..."
     {
-	=printf "  %s\\\\\n" "--src=[[STYPE]:]SLOCATION"
-	=printf "  %s\\\\\n" "[--dest=[[DTYPE]:]DLOCATOIN]"
-	=printf "  %s\n"	"[EXPANDER] [EXPANDER-OPTION]..."
+	=printf "  %s\\\\\n" "[--stype=STYPE] --sloc=SLOCATION"
+	=printf "  %s\\\\\n" "--dtype=DTYPE --dloc=DLOCATION"
     } | indent
     echo "OPTOINS:"
     {
@@ -500,12 +499,12 @@ i_expand_run()
 
     local src
     local stype
-    local slocation
+    local sloc
     local -r stype_default=file
 
     local dest
     local dtype
-    local dlocation
+    local dloc
     local -r dtype_default=dir
 
     local expander
@@ -550,34 +549,63 @@ i_expand_run()
 		debug=yes
 		shift
 		;;
-	    (--dest)
+	    (--dtype)
 		opt=$1
 		if [[ -z "$2" ]]; then
 		    -E- "$c: value for $opt is not given"
+		elif [[ -n "${dtype}" ]]; then
+		    if [[ ${dtype} != $2 ]]; then
+			-E- "$c: dtype is already given as ${dtype}: ${opt}=$2"
+		    else
+			dtype=$2
+		    fi
 		else
-		    dest=$2
+		    dtype=$2
 		fi
 		shift 2
-		if [[ -z "$dest" ]]; then
-		    -E- "$c: value for $opt is not given"
-		fi
-		dtype=${dest%%:*}
-		if [[ "$dtype" == "$dest" ]]; then
-		    dtype=${dtype_default}
-		fi
-		dlocation=${dest#*:}
-		if [[ -z "$dlocation" ]]; then
-		    if [[ "$dtype" == "${dtype_default}" ]]; then
-			dlocation=.
-		    else
-			-E- "$c: location part of $opt value is not given"
-		    fi
-		fi
-
 		if ! member "$dtype" ${(k)EXPAND_DTYPE}; then
 		    -E- "$c: no such dest type: $dtype"
 		fi
-
+		;;
+	    (--dloc)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		elif [[ -n "${dloc}" ]]; then
+		    -E- "$c: dloc is already given as ${dloc}: ${opt}=$2"
+		else
+		    dloc=$2
+		    shift 2
+		fi
+		;;
+	    (--stype)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		elif [[ -n "${stype}" ]]; then
+		    if [[ ${stype} != $2 ]]; then
+			-E- "$c: stype is already given as ${stype}: ${opt}=$2"
+		    else
+			stype=$2
+		    fi
+		else
+		    stype=$2
+		fi
+		shift 2
+		if ! member "$stype" ${(k)EXPAND_STYPE}; then
+		    -E- "$c: no such src type: $stype"
+		fi
+		;;
+	    (--sloc)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		elif [[ -n "${sloc}" ]]; then
+		    -E- "$c: sloc is already given as ${sloc}: ${opt}=$2"
+		else
+		    sloc=$2
+		    shift 2
+		fi
 		;;
 	    (--quit-after)
 		opt=$1
@@ -592,44 +620,6 @@ i_expand_run()
 		    ;;
 		    (*)
 			-E- "$c: unexpected value for $opt"
-			;;
-		esac
-		;;
-	    (--src)
-		opt=$1
-		if [[ -z "$2" ]]; then
-		    -E- "$c: value for $opt is not given"
-		else
-		    src=$2
-		fi
-		shift 2
-		if [[ -z "$src" ]]; then
-		    -E- "$c: vale for $opt is not given"
-		fi
-		stype=${src%%:*}
-		if [[ "$stype" == "$src" ]]; then
-		    stype=${stype_default}
-		fi
-		slocation=${src#*:}
-		if [[ -z "$slocation" ]]; then
-		    -E- "$c: location part of $opt value is not given"
-		fi
-
-		if ! member "$stype" ${(k)EXPAND_STYPE}; then
-		    -E- "$c: no such src type: $stype"
-		fi
-
-		checker="x_src_${stype}_check"
-		if is_available $checker; then
-		    $checker "$slocation"
-		fi
-
-		case "$slocation" in
-		    (*.src.rpm)
-			expander_default=srpm
-			;;
-		    (*.lcopy)
-			expander_default=lcopy
 			;;
 		esac
 		;;
@@ -655,33 +645,43 @@ i_expand_run()
 	esac
     done
 
-
-    if [[ -z "$src" ]]; then
-	-E- "$c: no SOURCE is given"
+    if [[ -z "$sloc" ]]; then
+	-E- "$c: no SLOC is given"
+    fi
+    if [[ -z "$stype" ]]; then
+	style=${stype_default}
+    fi
+    checker="x_src_${stype}_check"
+    if is_available $checker; then
+	$checker "$sloc"
     fi
 
-    if [[ -z "$dtype" && -z "$dlocation" ]]; then
-	dtype=dir
-	dlocation=.
+    if [[ -z "$dtype" && -z "$dloc" ]]; then
+	dtype=${dtype_default}
+	dloc=.
     elif [[ -z "$dtype" ]]; then
-	dtype=dir
-    elif [[ -z "$dlocation" && "$dtype" == "dir" ]]; then
-	dlocation=.
+	dtype=${dtype_default}
+    elif [[ -z "$dloc" ]]; then
+	if [[ "$dtype" == "dir" ]]; then
+	    dloc=.
+	else
+	    -E- "$c: no DLOC is given"
+	fi
     fi
-
-    if [[ -z "$dtype" || -z "$dlocation" ]]; then
-	-E- "$c: no DESTINATION is given"
-    fi
-
     checker="x_dest_${dtype}_check"
     if is_available $checker; then
-	"$checker" "$dlocation"
+	"$checker" "$dloc"
     fi
+
 
     if [[ -z "$expander" ]]; then
+	case "$sloc" in
+	    (*.src.rpm)
+		expander_default=srpm
+		;;
+	esac
 	expander=${expander_default}
     fi
-
     checker="x_expand_${expander}_check"
     if is_available "$checker"; then
 	"$checker"
@@ -689,9 +689,9 @@ i_expand_run()
 
     if [[ "${debug}" == "yes" ]]; then
 	echo stype: $stype
-	echo slocation: $slocation
+	echo sloc: $sloc
 	echo dtype: $dtype
-	echo dlocation: $dlocation
+	echo dloc: $dloc
 	echo expander: $expander
     fi
 
@@ -700,7 +700,7 @@ i_expand_run()
     fi
 
     #
-    # TODO: check the status of $dlocation
+    # TODO: check the status of $dloc
     #       if not expanded yet, lock the directory.
     #
     __SUBCOMMAND_POST_PARSE_ARGS__ $c
@@ -720,9 +720,9 @@ i_expand_run()
 		echo "${expander}"  > $t/$p_uname/expander  &&
 		echo "${args[@]}"   > $t/$p_uname/x_args    &&
 		echo "${stype}"     > $t/$p_uname/x_stype   &&
-		echo "${slocation}" > $t/$p_uname/x_slocation &&
+		echo "${sloc}" > $t/$p_uname/x_sloc &&
 		echo "${dtype}"     > $t/$p_uname/x_dtype &&
-		echo "${dlocation}" > $t/$p_uname/x_dlocation
+		echo "${dloc}" > $t/$p_uname/x_dloc
 	    } || throw Preparation
 	fi
 	if [[ "$quit_after" == "prepare" ]]; then
@@ -731,7 +731,7 @@ i_expand_run()
 
 	__SUBCOMMAND_PRE_RUN__ $c
 	set +e
-	x_expand_${expander}_run "$slocation" "$t" "$@"
+	x_expand_${expander}_run "$sloc" "$t" "$@"
 	s=$?
 	set -e
 	__SUBCOMMAND_POST_RUN__ $c $s
@@ -760,13 +760,13 @@ i_expand_run()
 		r=2
 	    fi
 	    if [[ "$s" == 0 || "$action_when_error" == continue ]]; then
-		if x_dest_${dtype}_transfer "$t" "$dlocation"; then
-		    x_dest_${dtype}_commit "$dlocation"
+		if x_dest_${dtype}_transfer "$t" "$dloc"; then
+		    x_dest_${dtype}_commit "$dloc"
 		    #
 		    # TODO; COMMIT_HOOK
 		    #
 		else
-		    delayed_emsg="$c: failed to transfer expanded data to $dtype:$dlocation from $t"
+		    delayed_emsg="$c: failed to transfer expanded data to $dtype:$dloc from $t"
 		    r=3
 		fi
 	    fi
@@ -811,26 +811,26 @@ x_prepare()
 EXPAND_STYPE[file]="regular file"
 x_src_file_check()
 {
-    local slocation=$1
+    local sloc=$1
 
-    if [[ ! -e "$slocation" ]]; then
-	-E- "$c: no such file: $slocation"
-    elif [[ ! -r "$slocation" ]]; then
-	-E- "$c: file unreadable: $slocation"
+    if [[ ! -e "$sloc" ]]; then
+	-E- "$c: no such file: $sloc"
+    elif [[ ! -r "$sloc" ]]; then
+	-E- "$c: file unreadable: $sloc"
     fi
 }
 
 EXPAND_DTYPE[dir]="sources standard directory layout"
 x_dest_dir_check()
 {
-    local dlocation=$1
+    local dloc=$1
 
-    if [[ ! -e "$dlocation" ]]; then
-	-E- "$c: no such directory: $dlocation"
-    elif [[ ! -d "$dlocation" ]]; then
-	-E- "$c: not directory: $dlocation"
-    elif [[ ! -w "$dlocation" ]]; then
-	-E- "$c: directory unwritable: $dlocation"
+    if [[ ! -e "$dloc" ]]; then
+	-E- "$c: no such directory: $dloc"
+    elif [[ ! -d "$dloc" ]]; then
+	-E- "$c: not directory: $dloc"
+    elif [[ ! -w "$dloc" ]]; then
+	-E- "$c: directory unwritable: $dloc"
     fi
 }
 

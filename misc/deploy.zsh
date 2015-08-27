@@ -91,7 +91,10 @@ run ()
 	    rm -rf ${sources_c_n_evr}/*(N)
 	fi
 
-	if SRPMIX7_XCMD_DIR=$XCMD ${SRPMIX7} expand --src file:$s --dest dir:${sources_c_n_evr} srpm; then
+	if SRPMIX7_XCMD_DIR=$XCMD ${SRPMIX7} expand \
+			   --stype file --sloc $s \
+			   --dtype dir --dloc ${sources_c_n_evr} \
+			   srpm; then
 	    p_green .
 	    (( successful_count += 1 ))
 	    (( msg_count += 1 ))
