@@ -73,7 +73,7 @@ run ()
     for s in $c/Packages/*.src.rpm; do
 	sources_c=${sources}/${${(f)"$(rpm -qp --nosignature --queryformat "%{name}\n" $s)"}:0:1}
 	sources_c_n=${sources_c}/${(f)"$(rpm -qp --nosignature --queryformat "%{name}\n" $s)"}
-	sources_c_n_evr=${sources_c_n}/${(f)"$(rpm -qp --nosignature --queryformat '%{EPOCHNUM}:%{VERSION}-%{RELEASE}\n' $s)"}
+	sources_c_n_evr=${sources_c_n}/${(f)"$(rpm -qp --nosignature --queryformat '%{VERSION}-%{RELEASE}:%{EPOCHNUM}\n' $s)"}
 	mkdir -p ${sources_c_n_evr}
 
 	(( total_count += 1 ))
