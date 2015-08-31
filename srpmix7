@@ -54,7 +54,8 @@ readonly -x p_bundles=_bundles
 readonly -x p_uname=_uname
 readonly -x p_uname_version=$p_uname/version
 readonly -x p_log=_log
-readonly -x p_tmp=__tmp
+readonly -x p_stmp=__src_tmp
+readonly -x p_xtmp=__expander_tmp
 
 readonly -x s_unknown=unknown
 readonly -x s_successful=successful
@@ -500,6 +501,7 @@ i_expand_run()
     local src
     local stype
     local sloc
+    local -a slocs_local
     local -r stype_default=file
 
     local dest
@@ -651,7 +653,7 @@ i_expand_run()
     if [[ -z "$stype" ]]; then
 	stype=${stype_default}
     fi
-    checker="x_src_${stype}_check"
+    checker="x_src_${stype}_precheck"
     if is_available $checker; then
 	$checker "$sloc"
     fi
@@ -677,6 +679,11 @@ i_expand_run()
     if [[ -z "$expander" ]]; then
 	case "$sloc" in
 	    (*.src.rpm)
+		expander_default=srpm
+		;;
+	esac
+	case "$stype" in
+	    (yds)
 		expander_default=srpm
 		;;
 	esac
@@ -729,9 +736,32 @@ i_expand_run()
 	    exit 0
 	fi
 
+	set +e
+	if x_src_${stype}_transfer ${sloc} $t; then
+	    slocs_local=( $t/$p_stmp/*(N) )
+	    echo "${slocs_local[@]}" > $t/$p_uname/x_slocs_local || throw Preparation
+	    if [[ $#slocs_local = 0 ]]; then
+		throw STransfer
+	    fi
+	else
+	    throw STransfer
+	fi
+	set -e
+
+
 	__SUBCOMMAND_PRE_RUN__ $c
 	set +e
-	x_expand_${expander}_run "$sloc" "$t" "$@"
+	if [[ $#slocs_local = 1 ]]; then
+	    # Passing a file under the temporary directory.
+	    checker="x_src_${stype}_postcheck"
+	    if is_available $checker; then
+		$checker "${slocs_local[1]}"
+	    fi
+	    x_expand_${expander}_run "${slocs_local[1]}" "$t" "$@"
+	else
+	    # Passing the temporary directory
+	    x_expand_${expander}_run  $t/$p_stmp "$t" "$@"
+	fi
 	s=$?
 	set -e
 	__SUBCOMMAND_POST_RUN__ $c $s
@@ -753,7 +783,15 @@ i_expand_run()
 		delayed_emsg="$c: failed to prepare a directory for expansion"
 	    fi
 	else
-	    if [[ "$s" == 0 ]]; then
+
+	    if catch STransfer; then
+		r=1
+		if [[ "$action_when_error" == continue ]]; then
+		    echo "$s_early_error" "(failed to transfer data source from $sloc to $t by $stype)" > $t/.$p_status
+		else
+		    delayed_emsg="$c: failed to transfer data source from $sloc to $t by $stype"
+		fi
+	    elif [[ "$s" == 0 ]]; then
 		r=0
 		echo $s_successful > $t/.$p_status
 	    else
@@ -796,7 +834,7 @@ x_prepare()
     local d=$1
     local elt
 
-    for elt in $p_archives $p_pre_build $p_specs $p_bundles $p_uname $p_log $p_tmp; do
+    for elt in $p_archives $p_pre_build $p_specs $p_bundles $p_uname $p_log $p_xtmp $p_stmp; do
 	if ! mkdir ${d}/${elt}; then
 	    return 1
 	fi
@@ -809,9 +847,11 @@ x_prepare()
 }
 
 EXPAND_STYPE[file]="regular file"
-x_src_file_check()
+x_src_file_precheck()
 {
     local sloc=$1
+
+    require yumdownloader "expand:stype:file"
 
     if [[ ! -e "$sloc" ]]; then
 	-E- "$c: no such file: $sloc"
@@ -819,6 +859,62 @@ x_src_file_check()
 	-E- "$c: file unreadable: $sloc"
     fi
 }
+
+x_src_file_postcheck()
+{
+    local sloc=$1
+
+    if [[ ! -e "$sloc" ]]; then
+	throw STransfer
+	-E- "$c: no such file: $sloc"
+    elif [[ ! -r "$sloc" ]]; then
+	throw STransfer
+    fi
+}
+
+x_src_file_transfer()
+{
+    local sloc=$1
+    local t=$2
+    local s
+
+
+    ln $sloc $t/$p_stmp/${sloc:t} > $t/$p_log/x_s_file-ln-transfer.log 2>&1
+    s=$?
+    echo $s > $t/$p_log/x_s_file-ln-transfer.status
+
+    if [[ $s != 0 ]]; then
+	cp -ar $sloc $t/$p_stmp/${sloc:t} > $t/$p_log/x_s_file-cp-transfer.log 2>&1
+	s=$?
+	echo $s > $t/$p_log/x_s_file-cp-transfer.status
+    fi
+
+    return $s
+}
+
+EXPAND_STYPE[yds]="a file downloaded by yumdownloader --source"
+x_src_yds_precheck()
+{
+    require yumdownloader "expand:stype:yds"
+}
+
+x_src_yds_postcheck()
+{
+    x_src_file_postcheck $1
+}
+x_src_yds_transfer()
+{
+    local sloc=$1
+    local t=$2
+    local s
+
+    yumdownloader --source --destdir ${t}/$p_stmp $sloc > $t/$p_log/x_s_yds-transfer.log 2>&1
+    s=$?
+    echo $s > $t/$p_log/x_s_yds-transfer.status
+    return $s
+}
+
+
 
 EXPAND_DTYPE[dir]="sources standard directory layout"
 x_dest_dir_check()
@@ -892,10 +988,10 @@ x_expand_srpm_run()
     done
 
     {
-	rpm --nosignature --define="_topdir $t/$p_tmp" -ivh "${srpm}" \
-	    > "$t/$p_log/srpm-rpm-ivh.log" 2>&1
+	rpm --nosignature --define="_topdir $t/$p_xtmp" -ivh "${srpm}" \
+	    > "$t/$p_log/x_srpm-rpm-ivh.log" 2>&1
 	s=$?
-	echo $s > "$t/$p_log/srpm-rpm-ivh.status"
+	echo $s > "$t/$p_log/x_srpm-rpm-ivh.status"
 	if [[ $s != 0 ]]; then
 	    throw RPM_I
 	fi
@@ -907,15 +1003,15 @@ x_expand_srpm_run()
 	# So The spec file name is recorded to t_spec here. The spec file for
 	# gdm generated while rpmbuild-bp is throws away when moving.
 	#
-	t_spec=( $t/$p_tmp/SPECS/*.spec(N) )
+	t_spec=( $t/$p_xtmp/SPECS/*.spec(N) )
 	if [[ ${#t_spec} != 1 ]]; then
 	    throw WRONG_SPEC_NUM
 	fi
 
-	rpmbuild --define="_topdir $t/$p_tmp" --nodeps --target=x86_64 -bp ${t_spec[1]} \
-		 > "$t/$p_log/srpm-rpmbuild-bp.log" 2>&1
+	rpmbuild --define="_topdir $t/$p_xtmp" --nodeps --target=x86_64 -bp ${t_spec[1]} \
+		 > "$t/$p_log/x_srpm-rpmbuild-bp.log" 2>&1
 	s=$?
-	echo $s > "$t/$p_log/srpm-rpmbuild-bp.status"
+	echo $s > "$t/$p_log/x_srpm-rpmbuild-bp.status"
 	if [[ $s != 0 ]]; then
 	    throw RPMBUILD_BP
 	fi
@@ -933,19 +1029,19 @@ x_expand_srpm_run()
 	    mv "${t_spec[1]}"   $t/$p_specs/srpm.spec
 	fi
 
-	if [[ -d "$t/$p_tmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_tmp/SOURCES" ); then
-	   mv $t/$p_tmp/SOURCES/*      $t/$p_archives
+	if [[ -d "$t/$p_xtmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_xtmp/SOURCES" ); then
+	   mv $t/$p_xtmp/SOURCES/*      $t/$p_archives
 	fi
 
-	if [[ -d "$t/$p_tmp/BUILD" ]] && ( ! is_empty_dir "$t/$p_tmp/BUILD" ); then
-	   mv $t/$p_tmp/BUILD/*     $t/$p_pre_build
+	if [[ -d "$t/$p_xtmp/BUILD" ]] && ( ! is_empty_dir "$t/$p_xtmp/BUILD" ); then
+	   mv $t/$p_xtmp/BUILD/*     $t/$p_pre_build
 	fi
     }
 
     set -e
-    if [[ -f "$t/$p_log/srpm-rpmbuild-bp.log" ]]; then
-	x_expand_srpm_clean_patch_backup_files "$t/$p_pre_build" "$t/$p_log/srpm-rpmbuild-bp.log" \
-					     > "$t/$p_log/srpm-clean-patch-backupfile.log"
+    if [[ -f "$t/$p_log/x_srpm-rpmbuild-bp.log" ]]; then
+	x_expand_srpm_clean_patch_backup_files "$t/$p_pre_build" "$t/$p_log/x_srpm-rpmbuild-bp.log" \
+					     > "$t/$p_log/x_srpm-clean-patch-backupfile.log"
     fi
     x_expand_srpm_make_all_readable    "$t/$p_pre_build"
 
