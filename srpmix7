@@ -649,7 +649,7 @@ i_expand_run()
 	-E- "$c: no SLOC is given"
     fi
     if [[ -z "$stype" ]]; then
-	style=${stype_default}
+	stype=${stype_default}
     fi
     checker="x_src_${stype}_check"
     if is_available $checker; then
