@@ -845,7 +845,7 @@ x_dest_dir_transfer()
 	    s=0
 	    break
 	fi
-	if [[ "${x:t}" = __* ]]; then
+	if [[ "${x:t}" == __* ]]; then
 	    # __tmp should not be transferred.
 	    continue
 	fi
@@ -1014,7 +1014,7 @@ __INIT__()
 {
     XCMD_DIR=${SRPMIX7_XCMD_DIR:-${EVAR_DEFAULT[XCMD_DIR]}}
     if [[ ! -d "${XCMD_DIR}" ]]; then
-	if [[ "${XCMD_DIR}" = "${EVAR_DEFAULT[XCMD_DIR]}" ]]; then
+	if [[ "${XCMD_DIR}" == "${EVAR_DEFAULT[XCMD_DIR]}" ]]; then
 	    #
 	    # NO WARNING
 	    #
