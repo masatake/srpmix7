@@ -945,7 +945,7 @@ x_expand_srpm_run()
 	x_expand_srpm_clean_patch_backup_files "$t/$p_pre_build" "$t/$p_log/srpm-rpmbuild-bp.log" \
 					     > "$t/$p_log/srpm-clean-patch-backupfile.log"
     fi
-    x_expand_srpm_make_readable "$t/$p_pre_build"
+    x_expand_srpm_make_all_readable "$t/$p_pre_build"
 
     # x_expand_srpm_owner
 
@@ -953,7 +953,7 @@ x_expand_srpm_run()
     return $s
 }
 
-x_expand_srpm_make_readable()
+x_expand_srpm_make_all_readable()
 {
     local target=$1
 
