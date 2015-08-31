@@ -1004,7 +1004,14 @@ __INIT__()
 {
     XCMD_DIR=${SRPMIX7_XCMD_DIR:-${EVAR_DEFAULT[XCMD_DIR]}}
     if [[ ! -d "${XCMD_DIR}" ]]; then
-	-E- "No such directory: SRPMIX7_XCMD_DIR=${XCMD_DIR}"
+	if [[ "${XCMD_DIR}" = "${EVAR_DEFAULT[XCMD_DIR]}" ]]; then
+	    #
+	    # NO WARNING
+	    #
+	    :
+	else
+	    -E- "No such directory: SRPMIX7_XCMD_DIR=${XCMD_DIR}"
+	fi
     elif ! XCMD_DIR=$(realpath -q "${XCMD_DIR}"); then
 	-E- "Cannot resolve path: XCMD_DIR=${XCMD_DIR}"
     else
