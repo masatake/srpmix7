@@ -22,7 +22,7 @@
 #
 readonly prefix=srpmix7
 readonly PREFIX=${(U)prefix}
-readonly SELF=${0##*/}
+readonly SELF=$0:t
 readonly c_version=7.0.0
 
 #
@@ -922,7 +922,7 @@ x_expand_srpm_run()
     } always {
 
 	if catch RPM_I; then
-	    =printf "%s (failed in rpm -ivh %s)" $s_error ${srpm##*/} > $t/.$p_status
+	    =printf "%s (failed in rpm -ivh %s)" $s_error ${srpm:t} > $t/.$p_status
 	elif catch WRONG_SPEC_NUM; then
 	    =printf "%s (wrong number of spec file(s): ${#t_spec})" $s_error > $t/.$p_status
 	elif catch RPMBUILD_BP; then
