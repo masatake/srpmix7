@@ -929,7 +929,9 @@ x_expand_srpm_run()
 	    =printf "%s (failed in rpmbuild -bp srpm.spec)" $s_error > $t/.$p_status
 	fi
 
-	mv "${t_spec[1]}"   $t/$p_specs/srpm.spec
+	if [[ -f "${t_spec[1]}" ]]; then
+	    mv "${t_spec[1]}"   $t/$p_specs/srpm.spec
+	fi
 
 	if [[ -d "$t/$p_tmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_tmp/SOURCES" ); then
 	   mv $t/$p_tmp/SOURCES/*      $t/$p_archives
