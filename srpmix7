@@ -952,9 +952,9 @@ x_src_yds_help()
     echo "	... expand --stype=yds --sloc=\[REPO\]NAME ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=yds --slock=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
-    echo "	srpmix7 expand --stype=yds --slock=coreutils --dtype=dir --dloc=/tmp srpm"
-    echo "	srpmix7 expand --stype=yds --slock=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=yds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=yds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=yds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
 }
 
 x_src_yds_precheck()
@@ -971,10 +971,20 @@ x_src_yds_transfer()
 {
     local sloc=$1
     local t=$2
+    local pname
+    local repo
     local s
 
-    # TODO: [rhel-7-server-source-rpms]coreutils
-    yumdownloader --source --destdir ${t}/$p_stmp $sloc > $t/$p_log/x_s_yds-transfer.log 2>&1
+    case "$sloc" in
+	(\[*\]*)
+	    pname=${sloc#\[*\]}
+	    repo=${${sloc%\]*}[2,-1]}
+	    yumdownloader --source --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
+	    ;;
+	(*)
+	    yumdownloader --source --destdir ${t}/$p_stmp $sloc
+	    ;;
+    esac > $t/$p_log/x_s_yds-transfer.log 2>&1
     s=$?
     echo $s > $t/$p_log/x_s_yds-transfer.status
     return $s

@@ -85,8 +85,8 @@ main()
     local c=0
 
     for ext in .rpm .yds; do
-	for tmp in ${S}/*${ext}; do
-	    if ! run $tmp ${tmp%${ext}}.zsh; then
+	for tmp in ${S}/*"${ext}"; do
+	    if ! run "$tmp" "${tmp%${ext}}.zsh"; then
 		c=1
 	    fi
 	done
