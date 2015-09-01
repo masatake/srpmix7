@@ -774,12 +774,12 @@ i_expand_run()
 	else
 	    {
 		echo "${c_version}" > $t/$p_uname/x_version &&
-		echo "${expander}"  > $t/$p_uname/expander  &&
-		echo "${args[@]}"   > $t/$p_uname/x_args    &&
-		echo "${stype}"     > $t/$p_uname/x_stype   &&
-		echo "${sloc}" > $t/$p_uname/x_sloc &&
-		echo "${dtype}"     > $t/$p_uname/x_dtype &&
-		echo "${dloc}" > $t/$p_uname/x_dloc
+		    echo "${expander}"  > $t/$p_uname/expander  &&
+		    echo "${args[@]}"   > $t/$p_uname/x_args    &&
+		    echo "${stype}"     > $t/$p_uname/x_stype   &&
+		    echo "${sloc}" > $t/$p_uname/x_sloc &&
+		    echo "${dtype}"     > $t/$p_uname/x_dtype &&
+		    echo "${dloc}" > $t/$p_uname/x_dloc
 	    } || throw Preparation
 	fi
 	if [[ "$quit_after" == "prepare" ]]; then
@@ -1220,18 +1220,18 @@ x_expand_srpm_run()
 	fi
 
 	if [[ -d "$t/$p_xtmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_xtmp/SOURCES" ); then
-	   mv $t/$p_xtmp/SOURCES/*      $t/$p_archives
+	    mv $t/$p_xtmp/SOURCES/*      $t/$p_archives
 	fi
 
 	if [[ -d "$t/$p_xtmp/BUILD" ]] && ( ! is_empty_dir "$t/$p_xtmp/BUILD" ); then
-	   mv $t/$p_xtmp/BUILD/*     $t/$p_pre_build
+	    mv $t/$p_xtmp/BUILD/*     $t/$p_pre_build
 	fi
     }
 
     set -e
     if [[ -f "$t/$p_log/x_srpm-rpmbuild-bp.log" ]]; then
 	x_expand_srpm_clean_patch_backup_files "$t/$p_pre_build" "$t/$p_log/x_srpm-rpmbuild-bp.log" \
-					     > "$t/$p_log/x_srpm-clean-patch-backupfile.log"
+					       > "$t/$p_log/x_srpm-clean-patch-backupfile.log"
     fi
 
     make_all_readable    "$t/$p_archives"
