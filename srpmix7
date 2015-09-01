@@ -491,6 +491,8 @@ i_expand_help()
 #                 expander: lcopy, deb, vanillax, rpm
 # other interesting things: npm, cpan, pypi,
 #
+# npm view jstags dist.tarball > /dev/null => url: vanillax
+#
 
 #
 # Return value
@@ -730,6 +732,9 @@ i_expand_run()
 	case "$stype" in
 	    (yds)
 		expander_default=srpm
+		;;
+	    (yd)
+		expander_default=brpm
 		;;
 	esac
 	expander=${expander_default}
@@ -990,10 +995,58 @@ x_src_yds_transfer()
     return $s
 }
 
+EXPAND_STYPE[yd]="a file downloaded by yumdownloader(no --source)"
+x_src_yd_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=yd --sloc=\[REPO\]NAME ..."
+
+    echo "Example:"
+    echo "	srpmix7 expand --stype=yd --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp brpm"
+    echo "	srpmix7 expand --stype=yd --sloc=coreutils --dtype=dir --dloc=/tmp brpm"
+    echo "	srpmix7 expand --stype=yd --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp brpm"
+}
+
+x_src_yds_precheck()
+{
+    require yumdownloader "expand:stype:yd"
+}
+
+x_src_yd_postcheck()
+{
+    x_src_file_postcheck $1
+}
+
+x_src_yd_transfer()
+{
+    local sloc=$1
+    local t=$2
+    local pname
+    local repo
+    local s
+
+    case "$sloc" in
+	(\[*\]*)
+	    pname=${sloc#\[*\]}
+	    repo=${${sloc%\]*}[2,-1]}
+	    yumdownloader --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
+	    ;;
+	(*)
+	    yumdownloader --destdir ${t}/$p_stmp $sloc
+	    ;;
+    esac > $t/$p_log/x_s_yd-transfer.log 2>&1
+    s=$?
+    echo $s > $t/$p_log/x_s_yd-transfer.status
+    return $s
+}
+
 EXPAND_DTYPE[dir]="sources standard directory layout"
 x_dest_dir_check()
 {
     local dloc=$1
+
+    require cp "expand:dtype:dir"
+    require tar "expand:dtype:dir"
 
     if [[ ! -e "$dloc" ]]; then
 	-E- "$c: no such directory: $dloc"
@@ -1020,7 +1073,12 @@ x_dest_dir_transfer()
 	    continue
 	fi
 
-	if ! cp -ar $x "${dest}"; then
+	if [[ "${x:t}" == "${p_log}" && $(< ${src}/.${p_status}) == ${s_successful} ]]; then
+	    if ! { tar Jcf "${x}".tar.xz ${x} && rm -rf ${x} && cp -ar ${x}.tar.xz "${dest}" }; then
+		s=1
+		break
+	    fi
+	elif ! cp -ar $x "${dest}"; then
 	    s=1
 	    break
 	fi
