@@ -464,6 +464,9 @@ i_expand_help()
 	echo "	--debug"
 	echo "	--quit-after=optparse|prepare"
 	echo "	--trace"
+	echo "	--help-expander=EXPANDER"
+	echo "	--help-stype=STYPE"
+	echo "	--help-dtype=DTYPE"
     }
     echo "STYPE:"
     for k in ${(k)EXPAND_STYPE}; do
@@ -481,13 +484,6 @@ i_expand_help()
     done
 
 }
-
-#
-# TODO
-# --help-expander=...
-# --help-stype=...
-# --help-dtype=...
-#
 
 #
 # TODO:
@@ -551,6 +547,37 @@ i_expand_run()
 		shift 1
 		1=( "$opt" "$next" "$@" )
 		;;
+	    (--help-expander)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		else
+		    expander=$2
+		fi
+		x_expand_${expander}_help
+		return 0
+		;;
+	    (--help-stype)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		else
+		    stype=$2
+		fi
+		x_src_${stype}_help
+		return 0
+		;;
+	    (--help-dtype)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		else
+		    dtype=$2
+		fi
+		x_dest_${dtype}_help
+		return 0
+		;;
+
 	    (--action-when-error)
 		if [[ -z "$2" ]]; then
 		    -E- "$c: value for $1 is not given"
@@ -865,6 +892,14 @@ x_prepare()
 }
 
 EXPAND_STYPE[file]="regular file"
+x_src_file_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=file --sloc=FILE ..."
+
+    echo "Example:"
+    echo "	srpmix7 expand --stype=file --stype=/tmp/coreutils-8.22-11.el7.src.rpm --dtype=dir --dloc=/tmp srpm"
+}
 x_src_file_precheck()
 {
     local sloc=$1
@@ -911,6 +946,17 @@ x_src_file_transfer()
 }
 
 EXPAND_STYPE[yds]="a file downloaded by yumdownloader --source"
+x_src_yds_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=yds --sloc=\[REPO\]NAME ..."
+
+    echo "Example:"
+    echo "	srpmix7 expand --stype=yds --slock=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=yds --slock=coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=yds --slock=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
+}
+
 x_src_yds_precheck()
 {
     require yumdownloader "expand:stype:yds"
@@ -927,13 +973,12 @@ x_src_yds_transfer()
     local t=$2
     local s
 
+    # TODO: [rhel-7-server-source-rpms]coreutils
     yumdownloader --source --destdir ${t}/$p_stmp $sloc > $t/$p_log/x_s_yds-transfer.log 2>&1
     s=$?
     echo $s > $t/$p_log/x_s_yds-transfer.status
     return $s
 }
-
-
 
 EXPAND_DTYPE[dir]="sources standard directory layout"
 x_dest_dir_check()
@@ -984,6 +1029,11 @@ x_dest_dir_commit()
 }
 
 EXPANDER[brpm]="binary rpm"
+x_expand_brpm_help()
+{
+    :
+}
+
 x_expand_brpm_run()
 {
     local brpm=$1
@@ -1031,6 +1081,11 @@ x_expand_brpm_check()
 }
 
 EXPANDER[srpm]="source rpm"
+x_expand_srpm_help()
+{
+    :
+}
+
 x_expand_srpm_run()
 {
     local srpm=$1
