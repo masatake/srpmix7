@@ -23,6 +23,9 @@ run0()
 	(*.src.rpm)
 	    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype file --sloc $src --dtype dir --dloc $dest srpm
 	    ;;
+	(*.rpm)
+	    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype file --sloc $src --dtype dir --dloc $dest brpm
+	    ;;
 	(*.yds)
 	    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype yds --sloc $src:r:t --dtype dir --dloc $dest srpm
 	    ;;
@@ -81,7 +84,7 @@ main()
     local ext
     local c=0
 
-    for ext in .src.rpm .yds; do
+    for ext in .rpm .yds; do
 	for tmp in ${S}/*${ext}; do
 	    if ! run $tmp ${tmp%${ext}}.zsh; then
 		c=1

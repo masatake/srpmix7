@@ -174,6 +174,21 @@ is_empty_dir()
     exit 1
 }
 
+make_all_readable()
+{
+    local target=$1
+
+    find $target -type f -exec chmod a+r '{}' '+'
+    find $target -type d -exec chmod a+x '{}' '+'
+}
+
+make_file_unwritable()
+{
+    local target=$1
+
+    find $target -type f -exec chmod a-w '{}' '+'
+}
+
 # error
 -E-()
 {
@@ -681,6 +696,9 @@ i_expand_run()
 	    (*.src.rpm)
 		expander_default=srpm
 		;;
+	    (*.rpm)
+		expander_default=brpm
+		;;
 	esac
 	case "$stype" in
 	    (yds)
@@ -902,6 +920,7 @@ x_src_yds_postcheck()
 {
     x_src_file_postcheck $1
 }
+
 x_src_yds_transfer()
 {
     local sloc=$1
@@ -962,6 +981,53 @@ x_dest_dir_commit()
 
     mv ${dest}/.$p_status ${dest}/$p_status
     return $?
+}
+
+EXPANDER[brpm]="binary rpm"
+x_expand_brpm_run()
+{
+    local brpm=$1
+    local t=$2
+    shift 2
+
+    local s
+
+    echo "$@"  > $t/$p_uname/x_brpm_args
+
+    echo "rpm2cpio" > $t/$p_uname/x_brpm_method
+    for tag in $(rpm --nosignature --querytags); do
+	rpm --nosignature -qp --queryformat '[%{'${tag}'}\n]' "${brpm}" \
+	    > $t/$p_specs/brpm_query_${tag//\//_/}
+    done
+
+    {
+	rpm2cpio $brpm | (cd $t/$p_xtmp && cpio -dim) > "$t/$p_log/x_brpm-rpm2cpio--cpio-dim.log" 2>&1
+	s=$?
+	echo $s > "$t/$p_log/x_brpm-rpm2cpio-cpio-dim.status"
+	if [[ $s != 0 ]]; then
+	    throw RPM2CPIO__CPIO_DIM
+	fi
+    } always {
+	if catch RPM2CPIO__CPIO_DIM; then
+	    =printf "%s (failed in rpm2cpio or cpio -dim for %s)" $s_error ${brpm:t} > $t/.$p_status
+	fi
+
+	if [[ -d "$t/$p_xtmp" ]] && ( ! is_empty_dir "$t/$p_xtmp" ); then
+	    mv $t/$p_xtmp/*	$t/$p_archives
+	fi
+    }
+
+    make_all_readable    "$t/$p_archives"
+    make_file_unwritable "$t/$p_archives"
+
+    return $s
+
+}
+x_expand_brpm_check()
+{
+    require rpm2cpio "expand:brpm"
+    require cpio "expand:brpm"
+    require rpm "expand:brpm"
 }
 
 EXPANDER[srpm]="source rpm"
@@ -1044,30 +1110,18 @@ x_expand_srpm_run()
 	x_expand_srpm_clean_patch_backup_files "$t/$p_pre_build" "$t/$p_log/x_srpm-rpmbuild-bp.log" \
 					     > "$t/$p_log/x_srpm-clean-patch-backupfile.log"
     fi
-    x_expand_srpm_make_all_readable    "$t/$p_pre_build"
+
+    make_all_readable    "$t/$p_archives"
+    make_all_readable    "$t/$p_pre_build"
 
     # TODO: git will rewrite the contents.
-    x_expand_srpm_make_file_unwritable "$t/$p_pre_build"
+    make_file_unwritable "$t/$p_archives"
+    make_file_unwritable "$t/$p_pre_build"
 
     # x_expand_srpm_owner
 
     set +e
     return $s
-}
-
-x_expand_srpm_make_all_readable()
-{
-    local target=$1
-
-    find $target -type f -exec chmod a+r '{}' '+'
-    find $target -type d -exec chmod a+x '{}' '+'
-}
-
-x_expand_srpm_make_file_unwritable()
-{
-    local target=$1
-
-    find $target -type f -exec chmod a-w '{}' '+'
 }
 
 x_expand_srpm_clean_patch_backup_files()
