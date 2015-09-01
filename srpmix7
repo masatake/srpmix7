@@ -1026,7 +1026,8 @@ x_expand_srpm_run()
 	fi
 
 	if [[ -f "${t_spec[1]}" ]]; then
-	    mv "${t_spec[1]}"   $t/$p_specs/srpm.spec
+	    mv "${t_spec[1]}"   $t/$p_specs/${t_spec[1]:t}
+	    ln -s ./${t_spec[1]:t} $t/$p_specs/srpm.spec
 	fi
 
 	if [[ -d "$t/$p_xtmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_xtmp/SOURCES" ); then
