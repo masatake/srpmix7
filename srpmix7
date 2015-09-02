@@ -1131,22 +1131,21 @@ x_dest_dir_transfer()
     local dest=$2
     local s=0
 
-    for x in ${src}/* ${src}/._*; do
-	if [ "${x}" = "${src}/"'*' ]; then
-	    s=0
-	    break
-	fi
+    for x in ${src}/*(N) ${src}/._*(N); do
 	if [[ "${x:t}" == __* ]]; then
 	    # __tmp should not be transferred.
 	    continue
 	fi
 
 	if [[ "${x:t}" == "${p_log}" && $(< ${src}/.${p_status}) == ${s_successful} ]]; then
-	    if ! { tar Jcf "${x}".tar.xz ${x} && rm -rf ${x} && cp -ar ${x}.tar.xz "${dest}" }; then
+	    # compress the log files only successful
+	    if ! { (cd "${x:h}" && tar Jcf "${p_log}".tar.xz ./${p_log} ) \
+		       && rm -rf ${x} && cp -ar ${x}.tar.xz "${dest}" }; then
 		s=1
 		break
 	    fi
 	elif ! cp -ar $x "${dest}"; then
+	    # just copy
 	    s=1
 	    break
 	fi
