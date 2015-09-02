@@ -548,7 +548,7 @@ i_expand_run()
     __SUBCOMMAND_INIT__ $c
 
     __SUBCOMMAND_PRE_PARSE_ARGS__ $c
-    while [ $# -gt 0 ]; do
+    while [[ $# -gt 0 ]]; do
 	case $1 in
 	    (--help|-h)
 		i_${c}_help
