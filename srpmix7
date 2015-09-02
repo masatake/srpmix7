@@ -805,7 +805,7 @@ i_expand_run()
 	if x_src_${stype}_transfer ${sloc} $t; then
 	    slocs_local=( $t/$p_stmp/*(N) )
 	    echo "${slocs_local[@]}" > $t/$p_uname/x_slocs_local || throw Preparation
-	    if [[ $#slocs_local = 0 ]]; then
+	    if [[ $#slocs_local == 0 ]]; then
 		throw STransfer
 	    fi
 	else
@@ -816,7 +816,7 @@ i_expand_run()
 
 	__SUBCOMMAND_PRE_RUN__ $c
 	set +e
-	if [[ $#slocs_local = 1 ]]; then
+	if [[ $#slocs_local == 1 ]]; then
 	    # Passing a file under the temporary directory.
 	    checker="x_src_${stype}_postcheck"
 	    if is_available $checker; then
