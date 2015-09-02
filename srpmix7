@@ -469,7 +469,7 @@ i_expand_help()
 	=printf "  %s\\\\\n" "[--stype=STYPE] --sloc=SLOCATION"
 	=printf "  %s\\\\\n" "--dtype=DTYPE --dloc=DLOCATION"
     } | indent
-    echo "OPTOINS:"
+    echo "OPTIONS:"
     {
 	echo "	--action-when-error=abort|continue"
 	echo "	--debug"
