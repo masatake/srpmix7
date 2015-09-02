@@ -984,6 +984,8 @@ x_src_file_transfer()
 {
     local sloc=$1
     local t=$2
+    local base_dir
+    local abs_sloc
     local s
 
 
@@ -991,8 +993,15 @@ x_src_file_transfer()
     s=$?
     echo $s > $t/$p_log/x_s_file-ln-transfer.status
 
+    base_dir=$(pwd)
+    if [[ "${sloc[0]}" == '/' ]]; then
+	abs_sloc=${sloc}
+    else
+	abs_sloc=$(pwd)/$sloc
+    fi
+
     if [[ $s != 0 ]]; then
-	cp -s $sloc $t/$p_stmp/${sloc:t} > $t/$p_log/x_s_file-cp-transfer.log 2>&1
+	( cd $t/$p_stmp && cp -s $abs_sloc ./${sloc:t} ) > $t/$p_log/x_s_file-cp-transfer.log 2>&1
 	s=$?
 	echo $s > $t/$p_log/x_s_file-cp-transfer.status
     fi
