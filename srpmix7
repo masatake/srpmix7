@@ -585,7 +585,7 @@ i_expand_run()
 		else
 		    expander=$2
 		fi
-		x_expand_${expander}_help
+		x_help_expander ${expander}
 		return 0
 		;;
 	    (--help-stype)
@@ -595,7 +595,7 @@ i_expand_run()
 		else
 		    stype=$2
 		fi
-		x_src_${stype}_help
+		x_help_stype ${stype}
 		return 0
 		;;
 	    (--help-dtype)
@@ -605,7 +605,7 @@ i_expand_run()
 		else
 		    dtype=$2
 		fi
-		x_dest_${dtype}_help
+		x_help_dtype ${dtype}
 		return 0
 		;;
 
@@ -907,6 +907,42 @@ i_expand_run()
     __SUBCOMMAND_FINI__ $c $r
 
     return $r
+}
+
+x_help_expander()
+{
+    local expanded=$1
+    local c
+
+    x_expand_${expander}_help
+    echo "Requirements:"
+    for c in ${REQUIREMENTS[expander_${expander}]}; do
+	echo "	$c"
+    done
+}
+
+x_help_stype()
+{
+    local stype=$1
+    local c
+
+    x_src_${stype}_help
+    echo "Requirements:"
+    for c in ${REQUIREMENTS[stype_${stype}]}; do
+	echo "	$c"
+    done
+}
+
+x_help_dtype()
+{
+    local dtype=$1
+    local c
+
+    x_dest_${dtype}_help
+    echo "Requirements:"
+    for c in ${REQUIREMENTS[dtype_${dtype}]}; do
+	echo "	$c"
+    done
 }
 
 #
