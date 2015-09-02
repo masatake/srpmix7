@@ -578,37 +578,14 @@ i_expand_run()
 		shift 1
 		1=( "$opt" "$next" "$@" )
 		;;
-	    (--help-expander)
+	    (--help-expander|--help-stype|--help-dtype)
 		opt=$1
 		if [[ -z "$2" ]]; then
 		    -E- "$c: value for $opt is not given"
-		else
-		    expander=$2
 		fi
-		x_help_expander ${expander}
+		x_help_${opt#--help-} $2
 		return 0
 		;;
-	    (--help-stype)
-		opt=$1
-		if [[ -z "$2" ]]; then
-		    -E- "$c: value for $opt is not given"
-		else
-		    stype=$2
-		fi
-		x_help_stype ${stype}
-		return 0
-		;;
-	    (--help-dtype)
-		opt=$1
-		if [[ -z "$2" ]]; then
-		    -E- "$c: value for $opt is not given"
-		else
-		    dtype=$2
-		fi
-		x_help_dtype ${dtype}
-		return 0
-		;;
-
 	    (--action-when-error)
 		if [[ -z "$2" ]]; then
 		    -E- "$c: value for $1 is not given"
