@@ -58,7 +58,7 @@ run ()
     local -a error_dest
     local i
 
-    cradle=${c##*/}
+    cradle=${c:t}
     sources=${D}/cradles/${cradle}/sources
     mkdir -p $sources
 
@@ -105,14 +105,14 @@ run ()
 		    (( early_error_count += 1 ))
 		    (( msg_count += 1 ))
 		    newline_maybe $msg_count &&  msg_count=0
-		    early_error_src+=${s##*/}
+		    early_error_src+=${s:t}
 		    early_error_dest+=${sources_c_n_evr#{sources_c}}
 		    ;;
 		(2) p_yellow f
 		    (( error_count += 1 ))
 		    (( msg_count += 1 ))
 		    newline_maybe $msg_count &&  msg_count=0
-		    error_src+=${s##*/}
+		    error_src+=${s:t}
 		    error_dest+=${sources_c_n_evr#{sources_c}}
 		    ;;
 		(*) echo "UNEXPECTED EXIT STATUS" 2>&1
