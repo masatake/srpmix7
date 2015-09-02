@@ -728,16 +728,10 @@ i_expand_run()
 	"$checker" "$dloc"
     fi
 
-
+    #
+    # TODO: convert to per backend funcs.
+    #
     if [[ -z "$expander" ]]; then
-	case "$sloc" in
-	    (*.src.rpm)
-		expander_default=srpm
-		;;
-	    (*.rpm)
-		expander_default=brpm
-		;;
-	esac
 	case "$stype" in
 	    (yds)
 		expander_default=srpm
@@ -745,9 +739,20 @@ i_expand_run()
 	    (yd)
 		expander_default=brpm
 		;;
+	    (file)
+		case "$sloc" in
+		    (*.src.rpm)
+			expander_default=srpm
+			;;
+		    (*.rpm)
+			expander_default=brpm
+			;;
+		esac
+		;;
 	esac
 	expander=${expander_default}
     fi
+    #
     checker="x_expand_${expander}_check"
     check_requirements expander ${expander}
     if is_available "$checker"; then
