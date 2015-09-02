@@ -98,6 +98,10 @@ ICMD_DESC=(
 
 EVAR[TMPDIR]="Directory where temorary directories are created"
 
+typeset -A REQUIREMENTS
+REQUIREMENTS=(
+)
+
 #
 # Utilities
 #
@@ -143,6 +147,20 @@ require()
     else
 	is_available $c || -E- "$c is not found"
     fi
+}
+
+check_requirements()
+{
+    local class=$1
+    local name=$2
+    local cmds
+    local c
+
+    for cmds in ${REQUIREMENTS[${class}_${name}]}; do
+	for c in ${=cmds}; do
+	    require $c $class/$name
+	done
+    done
 }
 
 backtrace()
@@ -708,6 +726,8 @@ i_expand_run()
     if [[ -z "$stype" ]]; then
 	stype=${stype_default}
     fi
+
+    check_requirements stype ${stype}
     checker="x_src_${stype}_precheck"
     if is_available $checker; then
 	$checker "$sloc"
@@ -726,6 +746,7 @@ i_expand_run()
 	fi
     fi
     checker="x_dest_${dtype}_check"
+    check_requirements dtype ${dtype}
     if is_available $checker; then
 	"$checker" "$dloc"
     fi
@@ -751,6 +772,7 @@ i_expand_run()
 	expander=${expander_default}
     fi
     checker="x_expand_${expander}_check"
+    check_requirements expander ${expander}
     if is_available "$checker"; then
 	"$checker"
     fi
@@ -908,6 +930,8 @@ x_prepare()
 }
 
 EXPAND_STYPE[file]="regular file"
+REQUIREMENTS[stype_file]=""
+
 x_src_file_help()
 {
     echo "Usage:"
@@ -959,6 +983,7 @@ x_src_file_transfer()
 }
 
 EXPAND_STYPE[yds]="a file downloaded by yumdownloader --source"
+REQUIREMENTS[stype_yds]="yumdownloader"
 x_src_yds_help()
 {
     echo "Usage:"
@@ -972,7 +997,7 @@ x_src_yds_help()
 
 x_src_yds_precheck()
 {
-    require yumdownloader "expand:stype:yds"
+    :
 }
 
 x_src_yds_postcheck()
@@ -1004,6 +1029,7 @@ x_src_yds_transfer()
 }
 
 EXPAND_STYPE[yd]="a file downloaded by yumdownloader(no --source)"
+REQUIREMENTS[stype_yd]="yumdownloader"
 x_src_yd_help()
 {
     echo "Usage:"
@@ -1017,7 +1043,7 @@ x_src_yd_help()
 
 x_src_yds_precheck()
 {
-    require yumdownloader "expand:stype:yd"
+    :
 }
 
 x_src_yd_postcheck()
@@ -1049,12 +1075,10 @@ x_src_yd_transfer()
 }
 
 EXPAND_DTYPE[dir]="sources standard directory layout"
+REQUIREMENTS[dtype_dir]="cp tar"
 x_dest_dir_check()
 {
     local dloc=$1
-
-    require cp "expand:dtype:dir"
-    require tar "expand:dtype:dir"
 
     if [[ ! -e "$dloc" ]]; then
 	-E- "$c: no such directory: $dloc"
@@ -1105,6 +1129,8 @@ x_dest_dir_commit()
 }
 
 EXPANDER[brpm]="binary rpm"
+REQUIREMENTS[expander_brpm]="rpm2cpio cpio rpm"
+
 x_expand_brpm_help()
 {
     :
@@ -1151,12 +1177,11 @@ x_expand_brpm_run()
 }
 x_expand_brpm_check()
 {
-    require rpm2cpio "expand:brpm"
-    require cpio "expand:brpm"
-    require rpm "expand:brpm"
+    :
 }
 
 EXPANDER[srpm]="source rpm"
+REQUIREMENTS[expander_srpm]="rpm rpmbuild"
 x_expand_srpm_help()
 {
     :
@@ -1283,8 +1308,7 @@ x_expand_srpm_clean_patch_backup_files()
 
 x_expand_srpm_check()
 {
-    require rpm "expand:srpm"
-    require rpmbuild "expand:srpm"
+    :
 }
 
 #
