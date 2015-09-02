@@ -196,6 +196,29 @@ make_file_unwritable()
     exit 1
 } 1>&2
 
+# throw
+-T-()
+{
+    local o=$1
+    shift
+
+    echo "[ERROR]" "$@"
+    backtrace | indent
+    throw $o
+} 1>&2
+
+-T%-()
+{
+    local o=$1
+    shift
+    local fmt=$1
+    shift
+
+    printf "[ERROR] ${fmt}\n" "$@"
+    backtrace | indent
+    throw $o
+} 1>&2
+
 -W-()
 {
     echo "[WARNING]" "$@"  1>&2
