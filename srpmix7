@@ -920,8 +920,6 @@ x_src_file_precheck()
 {
     local sloc=$1
 
-    require yumdownloader "expand:stype:file"
-
     if [[ ! -e "$sloc" ]]; then
 	-E- "$c: no such file: $sloc"
     elif [[ ! -r "$sloc" ]]; then
