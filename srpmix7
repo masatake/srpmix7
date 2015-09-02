@@ -992,7 +992,7 @@ x_src_file_transfer()
     echo $s > $t/$p_log/x_s_file-ln-transfer.status
 
     if [[ $s != 0 ]]; then
-	cp -r $sloc $t/$p_stmp/${sloc:t} > $t/$p_log/x_s_file-cp-transfer.log 2>&1
+	cp -s $sloc $t/$p_stmp/${sloc:t} > $t/$p_log/x_s_file-cp-transfer.log 2>&1
 	s=$?
 	echo $s > $t/$p_log/x_s_file-cp-transfer.status
     fi
