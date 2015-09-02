@@ -934,10 +934,9 @@ x_src_file_postcheck()
     local sloc=$1
 
     if [[ ! -e "$sloc" ]]; then
-	throw STransfer
-	-E- "$c: no such file: $sloc"
+	-T- STransfer "$c: no such file: $sloc"
     elif [[ ! -r "$sloc" ]]; then
-	throw STransfer
+	-T- STransfer "$c: file unreadable: $sloc"
     fi
 }
 
