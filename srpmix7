@@ -836,14 +836,14 @@ i_expand_run()
 	if catch Creation; then
 	    r=1
 	    if [[ "$action_when_error" == continue ]]; then
-		echo "$s_early_error" "(failed to create working directory for expanding)" > $t/.$p_status
+		echo "$s_early_error" "(failed to create working directory for expanding)\n" > $t/.$p_status
 	    else
 		delayed_emsg="$c: failed to create working directory for expanding"
 	    fi
 	elif catch Prepare; then
 	    r=1
 	    if [[ "$action_when_error" == continue ]]; then
-		echo "$s_early_error" "(failed to prepare a directory for expansion)" > $t/.$p_status
+		echo "$s_early_error" "(failed to prepare a directory for expansion)\n" > $t/.$p_status
 	    else
 		delayed_emsg="$c: failed to prepare a directory for expansion"
 	    fi
@@ -852,7 +852,7 @@ i_expand_run()
 	    if catch STransfer; then
 		r=1
 		if [[ "$action_when_error" == continue ]]; then
-		    echo "$s_early_error" "(failed to transfer data source from $sloc to $t by $stype)" > $t/.$p_status
+		    echo "$s_early_error" "(failed to transfer data source from $sloc to $t by $stype)\n" > $t/.$p_status
 		else
 		    delayed_emsg="$c: failed to transfer data source from $sloc to $t by $stype"
 		fi
@@ -1178,7 +1178,7 @@ x_expand_brpm_run()
 	fi
     } always {
 	if catch RPM2CPIO__CPIO_DIM; then
-	    =printf "%s (failed in rpm2cpio or cpio -dim for %s)" $s_error ${brpm:t} > $t/.$p_status
+	    =printf "%s (failed in rpm2cpio or cpio -dim for %s)\n" $s_error ${brpm:t} > $t/.$p_status
 	fi
 
 	if [[ -d "$t/$p_xtmp" ]] && ( ! is_empty_dir "$t/$p_xtmp" ); then
@@ -1257,11 +1257,11 @@ x_expand_srpm_run()
     } always {
 
 	if catch RPM_I; then
-	    =printf "%s (failed in rpm -ivh %s)" $s_error ${srpm:t} > $t/.$p_status
+	    =printf "%s (failed in rpm -ivh %s)\n" $s_error ${srpm:t} > $t/.$p_status
 	elif catch WRONG_SPEC_NUM; then
-	    =printf "%s (wrong number of spec file(s): ${#t_spec})" $s_error > $t/.$p_status
+	    =printf "%s (wrong number of spec file(s): ${#t_spec})\n" $s_error > $t/.$p_status
 	elif catch RPMBUILD_BP; then
-	    =printf "%s (failed in rpmbuild -bp srpm.spec)" $s_error > $t/.$p_status
+	    =printf "%s (failed in rpmbuild -bp srpm.spec)\n" $s_error > $t/.$p_status
 	fi
 
 	if [[ -f "${t_spec[1]}" ]]; then
