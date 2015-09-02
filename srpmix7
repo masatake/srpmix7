@@ -992,7 +992,7 @@ x_src_file_transfer()
     echo $s > $t/$p_log/x_s_file-ln-transfer.status
 
     if [[ $s != 0 ]]; then
-	cp -ar $sloc $t/$p_stmp/${sloc:t} > $t/$p_log/x_s_file-cp-transfer.log 2>&1
+	cp -r $sloc $t/$p_stmp/${sloc:t} > $t/$p_log/x_s_file-cp-transfer.log 2>&1
 	s=$?
 	echo $s > $t/$p_log/x_s_file-cp-transfer.status
     fi
@@ -1122,11 +1122,11 @@ x_dest_dir_transfer()
 	if [[ "${x:t}" == "${p_log}" && $(< ${src}/.${p_status}) == ${s_successful} ]]; then
 	    # compress the log files only successful
 	    if ! { (cd "${x:h}" && tar Jcf "${p_log}".tar.xz ./${p_log} ) \
-		       && rm -rf ${x} && cp -ar ${x}.tar.xz "${dest}" }; then
+		       && rm -rf ${x} && cp -r ${x}.tar.xz "${dest}" }; then
 		s=1
 		break
 	    fi
-	elif ! cp -ar $x "${dest}"; then
+	elif ! cp -r $x "${dest}"; then
 	    # just copy
 	    s=1
 	    break
