@@ -162,18 +162,6 @@ is_empty_dir()
     return $?
 }
 
-# Assert, Internal error
--A-()
-{
-    local r
-    if "$@"; then
-	return 0
-    else
-	printf "INTERNAL ERROR: %s\n" "$*"
-    fi
-    exit 1
-}
-
 make_all_readable()
 {
     local target=$1
