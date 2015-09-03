@@ -1,0 +1,10 @@
+# -*- shell-script -*-
+GIT_CF_VERSION="0.0.1"
+GIT_REPOSITORY="https://github.com/universal-ctags/ctags.git"
+GIT_BRANCH=""
+LCOPY_CF_VERSION="0.3.8"
+LCOPY_VCS="git"
+LCOPY_PACKAGE="ctags"
+LCOPY_BRANCH="universal"
+LCOPY_UPDATE="yes"
+LCOPY_GENERATED_BY="manual"

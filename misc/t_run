@@ -35,6 +35,9 @@ run0()
 	(*.git)
 	    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype git --sloc $(< $src) --dtype dir --dloc $dest lcopy
 	    ;;
+	(*.lcopy)
+	    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype file --sloc $src --dtype dir --dloc $dest lcopy
+	    ;;
 	(*)
 	    echo "TEST HARNESS INTERNAL BUG: UNEXPECTED SRC FILE" 1>&2
 	    exit 3
@@ -91,7 +94,7 @@ main()
     local ext
     local c=0
 
-    for ext in .rpm .yds .yd .git; do
+    for ext in .rpm .yds .yd .git .lcopy; do
 	for tmp in ${S}/*"${ext}"; do
 	    if ! run "$tmp" "${tmp%${ext}}.zsh"; then
 		c=1
