@@ -739,6 +739,9 @@ i_expand_run()
 	    (yd)
 		expander_default=brpm
 		;;
+	    (npm)
+		expander_default=vanilla
+		;;
 	    (file|wget)
 		case "$sloc" in
 		    (*.src.rpm)
@@ -954,6 +957,43 @@ x_prepare()
     echo 'unknown' > ${d}/${elt}
 
     return 0
+}
+
+
+#
+# STYPES
+#
+EXPAND_STYPE[npm]="node package"
+REQUIREMENTS[stype_npm]="npm"
+x_src_npm_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=npm --sloc=NAME ..."
+
+    echo "Example:"
+    echo "	srpmix7 expand --stype=npm --sloc=uniator --dtype=dir --dloc=/tmp vanilla"
+}
+
+x_src_npm_transfer()
+{
+    local name=$1
+    local t=$2
+    local url
+    local s
+
+    url=$(npm view ${name} dist.tarball 2> $t/$p_log/x_s_npm-view-dist-tarball.log)
+    s=$?
+    echo "$s $url" >> $t/$p_log/x_s_npm-view-dist-tarball.log
+
+    if [[ "${s}" != 0 ]]; then
+	return $s
+    elif [[ -z "$url" ]]; then
+	echo "npm: returned URL is empty" >> $t/$p_log/x_s_npm-view-dist-tarball.log
+	return 1
+    fi
+
+    x_src_wget_transfer "$url" $t
+    return $?
 }
 
 EXPAND_STYPE[file]="regular file"

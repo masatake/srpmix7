@@ -44,6 +44,9 @@ run0()
 	(*.wget)
 	    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype wget --sloc $(< $src) --dtype dir --dloc $dest
 	    ;;
+	(*.npm)
+	    SRPMIX7_XCMD_DIR=./xcmd ./srpmix7 expand --stype npm --sloc $src:r:t --dtype dir --dloc $dest vanilla
+	    ;;
 	(*)
 	    echo "TEST HARNESS INTERNAL BUG: UNEXPECTED SRC FILE" 1>&2
 	    exit 3
@@ -100,7 +103,7 @@ main()
     local ext
     local c=0
 
-    for ext in .wget .gz .bz2 .xz .zip .rpm .yds .yd .git .lcopy; do
+    for ext in .npm .wget .gz .bz2 .xz .zip .rpm .yds .yd .git .lcopy; do
 	for tmp in ${S}/*"${ext}"(N); do
 	    if ! run "$tmp" "${tmp%${ext}}.zsh"; then
 		c=1
