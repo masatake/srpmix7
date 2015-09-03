@@ -747,6 +747,9 @@ i_expand_run()
 		    (*.rpm)
 			expander_default=brpm
 			;;
+		    (*.lcopy)
+			expander_default=lcopy
+			;;
 		esac
 		;;
 	esac
@@ -1011,6 +1014,64 @@ x_src_file_transfer()
 
     return $s
 }
+
+EXPAND_STYPE[git]="git repository"
+REQUIREMENTS[stype_git]=""
+x_src_git_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=git --sloc=http://... ..."
+    echo "	... expand --stype=git --sloc=https://... ..."
+    echo "	... expand --stype=git --sloc=git://... ..."
+    echo "	... expand --stype=git --sloc=[http://...]branch ..."
+    echo "	... expand --stype=git --sloc=[https://...]branch ..."
+    echo "	... expand --stype=git --sloc=[git://...]branch ..."
+}
+x_src_git_precheck()
+{
+    local sloc=$1
+
+    if  ! [[ ( "$sloc" =~ "^(http|https|git)://.*" )
+	|| ( "$sloc" =~ "^\[(HTTP|https|git)://.*\].*" ) ]]; then
+	-E- "$c: unexpected git repo URL: $sloc"
+    else
+	return 0
+    fi
+}
+x_src_git_postcheck()
+{
+    x_src_file_postcheck $1
+}
+
+x_src_git_transfer()
+{
+    local sloc=$1
+    local t=$2
+    local s
+
+    local repo
+    local branch
+
+    case "$sloc" in
+	(\[*\]*)
+	    repo=${${sloc%\]*}[2,-1]}
+	    branch=${sloc#\[*\]}
+
+	    if [[ -z "${repo}" ]]; then
+
+	    fi
+	    lcopy_genconf git "$repo" --branch "$branch"
+	    ;;
+	(*)
+	    lcopy_genconf git "$sloc"
+	    ;;
+    esac  > ${t}/$p_stmp/_.lcopy 2> $t/$p_log/x_s_git-transfer.log
+
+    s=$?
+    echo $s > $t/$p_log/x_s_git-transfer.status
+    return $s
+}
+
 
 EXPAND_STYPE[yds]="a file downloaded by yumdownloader --source"
 REQUIREMENTS[stype_yds]="yumdownloader"
@@ -1340,6 +1401,41 @@ x_expand_srpm_check()
     :
 }
 
+EXPANDER[lcopy]="local copy"
+REQUIREMENTS[expander_lcopy]="git"
+x_expand_lcopy_help()
+{
+    :
+}
+
+x_expand_lcopy_run()
+{
+    # TODO: update
+    local lcopy=$1
+    local t=$2
+    local s
+
+    lcopy_checkout $lcopy $t/$p_xtmp > $t/$p_log/x_lcopy-checkout.log 2>&1
+    s=$?
+    echo $s > "$t/$p_log/x_lcopy-checkout.status"
+    mv ${lcopy} $t/$p_specs/_.lcopy
+    if ! is_empty_dir "$t/$p_xtmp"; then
+	mv $t/$p_xtmp/*      $t/$p_archives
+    fi
+
+    if [[ $s != 0 ]]; then
+	=printf "%s (%s: %s)\n" $s_error $(lcopy_describe_error $s) ${locpy:t} \
+	 > $t/.$p_status
+    fi
+    return $s
+}
+
+x_expand_lcopy_check()
+{
+    :
+}
+#
+#
 #
 # Main program
 #
@@ -1496,6 +1592,139 @@ run()
     __FINI__
 
     return $r
+}
+
+#
+#
+# LCOPY
+#
+#
+readonly lcopy_cf_version=0.4
+readonly lcopy_git_cf_version=0.0.1
+
+readonly lcopy_error_wrong_syntax=1
+readonly lcopy_error_undefined_value=2
+
+typeset -a LCOPY_ERROR
+LCOPY_ERROR=(
+    "broken lcopy file (failed in source)"
+    "expected value is not defined in lcopy file"
+    "failed in checkout operation"
+)
+
+lcopy_describe_error()
+{
+    local msg=${LCOPY_ERROR[$1]}
+    echo "lcopy: ${msg:-unknown error code: $1}"
+}
+
+lcopy_git_checkout()
+{
+    local input=$1
+    local dir=$2
+    local s
+
+    (
+	if source ${lcopy}; then
+	    if [[ -z "${GIT_REPOSITORY}" ]]; then
+		echo "no GIT_REPOSITORY in $input" 1>&2
+		return ${lcopy_error_undefined_value}
+	    fi
+
+	    if [[ -z "${GIT_BRANCH}" ]]; then
+		git clone --recursive "${GIT_REPOSITORY}" "${dir}"
+	    else
+		git clone --recursive --branch "${GIT_BRANCH}" "${GIT_REPOSITORY}" "${dir}"
+	    fi
+	    s=$?
+
+	    if [[ $s != 0 ]]; then
+		return ${lcopy_failed_in_checkout}
+	    fi
+	else
+	    return ${lcopy_error_wrong_syntax}
+	fi
+    )
+}
+
+lcopy_checkout()
+{
+    local lcopy=$1
+    local vcs
+
+    if ! vcs=$( source "${lcopy}" && echo "$LCOPY_VCS" ); then
+	return ${lcopy_error_wrong_syntax}
+    elif [[ -z "${vcs}" ]]; then
+	return ${lcopy_error_undefined_value}
+    fi
+
+    case "$vcs" in
+	(git)
+	    lcopy_${vcs}_checkout "$@"
+	    ;;
+	(*)
+	    ;;
+    esac
+}
+
+lcopy_git_genconf()
+{
+    local repo=$1
+    shift
+
+    local branch
+
+    while [[ $# -gt 0 ]]; do
+	case "$1" in
+	    (--branch)
+		branch=$2
+		shift 2
+		;;
+	    (--*)
+		-E- "lcopy: unknown option given: $@"
+		;;
+	    (*)
+		-E- "lcopy: unexpected arugment given: $@"
+		;;
+	esac
+    done
+
+    cat  <<EOF
+# -*- shell-script -*-
+GIT_CF_VERSION="${lcopy_git_cf_version}"
+GIT_REPOSITORY="$repo"
+EOF
+    if [[ -n "${branch}" ]]; then
+	cat <<EOF
+GIT_BRANCH=${branch}
+EOF
+    fi
+
+    cat <<EOF
+LCOPY_CF_VERSION="${lcopy_cf_version}"
+LCOPY_VCS="git"
+LCOPY_UPDATE="yes"
+LCOPY_GENERATED_BY=$SELF
+EOF
+    return 0
+}
+
+lcopy_genconf()
+{
+    local vcs=$1
+    shift
+
+    if [[ -z "$vcs" ]]; then
+	-E-
+    fi
+
+    case "$vcs" in
+	(git)
+	    lcopy_${vcs}_genconf "$@"
+	    ;;
+	(*)
+	    ;;
+    esac
 }
 
 run "$@"
