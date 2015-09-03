@@ -1418,7 +1418,7 @@ x_expand_lcopy_run()
     lcopy_checkout $lcopy $t/$p_xtmp > $t/$p_log/x_lcopy-checkout.log 2>&1
     s=$?
     echo $s > "$t/$p_log/x_lcopy-checkout.status"
-    mv ${lcopy} $t/$p_specs/_.lcopy
+    cp ${lcopy} $t/$p_specs/_.lcopy
     if ! is_empty_dir "$t/$p_xtmp"; then
 	mv $t/$p_xtmp/*      $t/$p_archives
     fi
