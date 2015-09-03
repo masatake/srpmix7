@@ -27,7 +27,7 @@ readonly c_version=7.0.0
 
 #
 # TODO
-#    subcommands: deploy(kicked from systemd unit), analyze-log,
+#    subcommands: diag, deploy(kicked from systemd unit), repair,
 #                 attach(generate bundle), spider(?), gc-raw, gc-upper, delete
 #
 #
@@ -103,7 +103,9 @@ REQUIREMENTS=(
 )
 
 #
+#
 # Utilities
+#
 #
 indent()
 {
@@ -258,7 +260,9 @@ make_file_unwritable()
 }
 
 #
+#
 # Subcommand related operations
+#
 #
 subcommand_enumerate()
 {
@@ -316,7 +320,9 @@ subcommand_run()
 }
 
 #
+#
 # XCMD related operations
+#
 #
 EVAR[XCMD_DIR]="Directory where external subcommand files are"
 EVAR_DEFAULT[XCMD_DIR]="/usr/libexec/${prefix}/xcmd"
@@ -363,7 +369,9 @@ xcmd_run()
 }
 
 #
+#
 # ICMD related operations
+#
 #
 icmd_exist_p()
 {
@@ -408,7 +416,9 @@ icmd_run()
 }
 
 #
+#
 # Environment variable related operations
+#
 #
 evar_enumerate()
 {
@@ -427,7 +437,9 @@ evar_enumerate()
 }
 
 #
+#
 # Subcommand: inull
+#
 #
 ICMD+=null
 ICMD_DESC[null]="do nothing (internal command example)"
@@ -443,7 +455,9 @@ i_null_run()
 }
 
 #
+#
 # Subcommand: help
+#
 #
 ICMD+=help
 ICMD_DESC[help]="show help message for subcommand"
@@ -469,7 +483,9 @@ i_help_run()
 }
 
 #
+#
 # Subcommand: expand
+#
 #
 ICMD+=expand
 ICMD_DESC[expand]="expand source code"
@@ -484,8 +500,9 @@ i_expand_help()
 
     =printf "%s\\\\\n" "$SELF expand [OPTIONS] EXPANDER [EXPANDER-OPTION]..."
     {
-	=printf "  %s\\\\\n" "[--stype=STYPE] --sloc=SLOCATION"
-	=printf "  %s\\\\\n" "--dtype=DTYPE --dloc=DLOCATION"
+	=printf "  %s \\\\\n" "--stype=STYPE --sloc=SLOCATION"
+	=printf "  %s \\\\\n" "--dtype=DTYPE --dloc=DLOCATION"
+	echo
     } | indent
     echo "OPTIONS:"
     {
@@ -1230,7 +1247,11 @@ x_src_yd_transfer()
     return $s
 }
 
-EXPAND_DTYPE[dir]="sources standard directory layout"
+
+#
+# DTYPES
+#
+EXPAND_DTYPE[dir]="sources7 lower directory layout"
 REQUIREMENTS[dtype_dir]="cp tar"
 x_dest_dir_check()
 {
@@ -1286,7 +1307,7 @@ x_dest_dir_commit()
 #
 # EXPANDERS
 #
-EXPANDER[vanilla]="Unarchivers frontend"
+EXPANDER[vanilla]="unarchivers frontend"
 REQUIREMENTS[expander_vanilla]="tar unzip gunzip bunzip2 unxz"
 x_expand_vanilla_help()
 {
@@ -1540,8 +1561,8 @@ x_expand_lcopy_check()
 }
 #
 #
+# MAIN
 #
-# Main program
 #
 
 #
