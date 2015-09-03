@@ -516,8 +516,8 @@ i_expand_help()
 
 #
 # TODO:
-#                    stype: apt-get,wget
-#                 expander: deb, vanilla, rpm
+#                    stype: apt-get,rsync
+#                 expander: deb
 # other interesting things: npm, cpan, pypi,
 #
 # npm view jstags dist.tarball > /dev/null => url: vanilla
@@ -739,7 +739,7 @@ i_expand_run()
 	    (yd)
 		expander_default=brpm
 		;;
-	    (file)
+	    (file|wget)
 		case "$sloc" in
 		    (*.src.rpm)
 			expander_default=srpm
@@ -1015,6 +1015,28 @@ x_src_file_transfer()
 	echo $s > $t/$p_log/x_s_file-cp-transfer.status
     fi
 
+    return $s
+}
+
+EXPAND_STYPE[wget]="something specified with URL"
+REQUIREMENTS[stype_wget]="wget"
+x_src_wget_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=wget --sloc=URL ..."
+}
+x_src_wget_transfer()
+{
+    local sloc=$1
+    local t=$2
+    local s
+
+    ( cd $t/$p_stmp;
+      wget $sloc;
+      exit $? ) > $t/$p_log/x_s_wget-transfer.log 2>&1
+
+    s=$?
+    echo $s > $t/$p_log/x_s_wget-transfer.status
     return $s
 }
 
