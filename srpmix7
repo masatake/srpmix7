@@ -516,11 +516,11 @@ i_expand_help()
 
 #
 # TODO:
-#                    stype: yumdownloader,apt-get,git, wget
-#                 expander: lcopy, deb, vanillax, rpm
+#                    stype: apt-get,wget
+#                 expander: deb, vanilla, rpm
 # other interesting things: npm, cpan, pypi,
 #
-# npm view jstags dist.tarball > /dev/null => url: vanillax
+# npm view jstags dist.tarball > /dev/null => url: vanilla
 #
 
 #
@@ -749,6 +749,9 @@ i_expand_run()
 			;;
 		    (*.lcopy)
 			expander_default=lcopy
+			;;
+		    (*.zip|*.gz|*.bz2|*.xz)
+			expander_default=vanilla
 			;;
 		esac
 		;;
@@ -1216,6 +1219,45 @@ x_dest_dir_commit()
 
     mv ${dest}/.$p_status ${dest}/$p_status
     return $?
+}
+
+#
+# EXPANDERS
+#
+EXPANDER[vanilla]="Unarchivers frontend"
+REQUIREMENTS[expander_vanilla]="tar unzip gunzip bunzip2 unxz"
+x_expand_vanilla_help()
+{
+    :
+}
+
+x_expand_vanilla_run()
+{
+    local archive=$1
+    local t=$2
+    shift 2
+    local s
+
+    echo "$@"  > $t/$p_uname/x_vanilla_args
+
+    vanilla $archive $t/$p_xtmp > "$t/$p_log/x_vanilla.log" 2>&1
+    s=$?
+    echo $s > "$t/$p_log/x_vanilla.status"
+
+    if [[ -d "$t/$p_xtmp" ]] && ( ! is_empty_dir "$t/$p_xtmp" ); then
+	mv $t/$p_xtmp/*	$t/$p_archives
+    fi
+
+    make_all_readable    "$t/$p_archives"
+    make_file_unwritable "$t/$p_archives"
+
+
+    return $s
+}
+
+x_expand_vanilla_check()
+{
+    :
 }
 
 EXPANDER[brpm]="binary rpm"
@@ -1727,6 +1769,51 @@ lcopy_genconf()
     esac
 }
 
+vanilla()
+{
+    local archive=$1
+    local output=$2
+    local s
+
+    (cd ${output};
+     case "$archive" in
+	 (*.zip)
+	     unzip -o "$f"
+	     s=$?
+	     ;;
+	 (*.tar.gz|*.tgz|*.tar.Z)
+	     tar zxf "$archive"
+	     s=$?
+	     ;;
+	 (*.tar.bz2|*.tbz|*.tbz2)
+	     tar jxf "$archive"
+	     s=$?
+	     ;;
+	 (*.tar.xz|*.txz)
+	     tar Jxf "$archive"
+	     s=$?
+	     ;;
+	 (*.gz|*.Z)
+	     gunzip --keep --force --stdout "$archive" > ./"${archive:h:r}"
+	     s=$?
+	     ;;
+	 (*.bz2)
+	     bunzip2 --keep --force --stdout "$archive" > ./"${archive:h:r}"
+	     s=$?
+	     ;;
+	 (*.xz)
+	     unxz --keep --force --stdout "$archive"   > ./"${archive:h:r}"
+	     s=$?
+	     ;;
+	 (*)
+	     echo "vanilla: no handler for $archive" 2>&1
+	     s=1
+	     ;;
+     esac
+     exit $s
+    )
+    return $?
+}
 run "$@"
 
 #
