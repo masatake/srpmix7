@@ -752,7 +752,10 @@ i_expand_run()
 	esac
 	expander=${expander_default}
     fi
-    #
+    if [[ -z "$expander" ]]; then
+	-E- "$c: no EXPANDER is given"
+    fi
+
     checker="x_expand_${expander}_check"
     check_requirements expander ${expander}
     if is_available "$checker"; then
