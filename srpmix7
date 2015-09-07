@@ -503,7 +503,7 @@ i_expand_help()
     } | indent
     echo "OPTIONS:"
     {
-	echo "	--action-when-error=abort|continue"
+	echo "	--action-when-error=abort|continue*"
 	echo "	--debug"
 	echo "	--quit-after=optparse|prepare"
 	echo "	--trace"
@@ -601,12 +601,13 @@ i_expand_run()
 		return 0
 		;;
 	    (--action-when-error)
+		opt=$1
 		if [[ -z "$2" ]]; then
-		    -E- "$c: value for $1 is not given"
+		    -E- "$c: value for $opt is not given"
 		else
 		    case $2 in
 			(abort|continue) action_when_error=$2;;
-			(*) -E- "$c: unexpected value for $1: $2";;
+			(*) -E- "$c: unexpected value for $opt: $2";;
 		    esac
 		fi
 		shift 2
