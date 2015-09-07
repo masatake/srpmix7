@@ -811,7 +811,8 @@ i_expand_run()
 	    throw Preparation
 	else
 	    {
-		echo "${c_version}" > $t/$p_uname/x_version &&
+		: &&
+		    echo "${c_version}" > $t/$p_uname/x_version &&
 		    echo "${expander}"  > $t/$p_uname/expander  &&
 		    echo "${args[@]}"   > $t/$p_uname/x_args    &&
 		    echo "${stype}"     > $t/$p_uname/x_stype   &&
