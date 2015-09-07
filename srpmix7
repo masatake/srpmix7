@@ -155,13 +155,10 @@ check_requirements()
 {
     local class=$1
     local name=$2
-    local cmds
     local c
 
-    for cmds in ${REQUIREMENTS[${class}_${name}]}; do
-	for c in ${=cmds}; do
-	    require $c $class/$name
-	done
+    for c in ${=${REQUIREMENTS[${class}_${name}]}}; do
+	require $c $class/$name
     done
 }
 
