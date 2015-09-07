@@ -1260,6 +1260,11 @@ x_src_yd_transfer()
 #
 EXPAND_DTYPE[dir]="sources7 lower directory layout"
 REQUIREMENTS[dtype_dir]="cp tar"
+x_dest_dir_help()
+{
+    :
+}
+
 x_dest_dir_check()
 {
     local dloc=$1
