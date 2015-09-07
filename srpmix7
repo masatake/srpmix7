@@ -1864,6 +1864,12 @@ lcopy_genconf()
     esac
 }
 
+
+#
+#
+# VANILLA
+#
+#
 vanilla()
 {
     local archive=$1
