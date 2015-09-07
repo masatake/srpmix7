@@ -917,8 +917,12 @@ i_expand_run()
 
 x_help_expander()
 {
-    local expanded=$1
+    local expander=$1
     local c
+
+    if [[ -z "${EXPANDER[${expander}]}" ]]; then
+	-E- "no such expander: ${expander}"
+    fi
 
     x_expand_${expander}_help
     echo "Requirements:"
@@ -932,6 +936,10 @@ x_help_stype()
     local stype=$1
     local c
 
+    if [[ -z "${EXPAND_STYPE[${stype}]}" ]]; then
+	-E- "no such stype: ${stype}"
+    fi
+
     x_src_${stype}_help
     echo "Requirements:"
     for c in ${REQUIREMENTS[stype_${stype}]}; do
@@ -943,6 +951,10 @@ x_help_dtype()
 {
     local dtype=$1
     local c
+
+    if [[ -z "${EXPAND_DTYPE[${dtype}]}" ]]; then
+	-E- "no such dtype: ${dtype}"
+    fi
 
     x_dest_${dtype}_help
     echo "Requirements:"
