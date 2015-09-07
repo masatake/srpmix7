@@ -679,16 +679,12 @@ i_expand_run()
 		if [[ -z "$2" ]]; then
 		    -E- "$c: value for $opt is not given"
 		else
-		    quit_after=$2
+		    case "$2" in
+			(optparse|prepare) quit_after=$2;;
+			(*) -E- "$c: unexpected value for $opt: $2" ;;
+		    esac
 		fi
 		shift 2
-		case "$quit_after" in
-		    (optparse|prepare)
-		    ;;
-		    (*)
-			-E- "$c: unexpected value for $opt"
-			;;
-		esac
 		;;
 	    (--trace|-x)
 		set -x
