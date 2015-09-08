@@ -1057,7 +1057,7 @@ x_src_file_transfer()
 {
     local sloc=$1
     local t=$2
-    local base_dir
+
     local abs_sloc
     local s
 
@@ -1066,8 +1066,7 @@ x_src_file_transfer()
     s=$?
     echo $s > $t/$p_log/x_s_file-ln-transfer.status
 
-    base_dir=$(pwd)
-    if [[ "${sloc[0]}" == '/' ]]; then
+    if [[ "${sloc[1]}" == '/' ]]; then
 	abs_sloc=${sloc}
     else
 	abs_sloc=$(pwd)/$sloc
