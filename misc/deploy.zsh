@@ -42,8 +42,8 @@ run ()
     local sources=
     local sources_c=
     local sources_c_n=
-    local sources_c_n_evr=
-    local sources_c_n_evr_status=
+    local sources_c_n_vr=
+    local sources_c_n_vr_status=
 
     local total_count=0
     local skip_count=0
@@ -73,27 +73,27 @@ run ()
     for s in $c/Packages/*.src.rpm; do
 	sources_c=${sources}/${${(f)"$(rpm -qp --nosignature --queryformat "%{name}\n" $s)"}:0:1}
 	sources_c_n=${sources_c}/${(f)"$(rpm -qp --nosignature --queryformat "%{name}\n" $s)"}
-	sources_c_n_evr=${sources_c_n}/${(f)"$(rpm -qp --nosignature --queryformat '%{VERSION}-%{RELEASE}--srpm\n' $s)"}
-	mkdir -p ${sources_c_n_evr}
+	sources_c_n_vr=${sources_c_n}/${(f)"$(rpm -qp --nosignature --queryformat '%{VERSION}-%{RELEASE}--srpm\n' $s)"}
+	mkdir -p ${sources_c_n_vr}
 
 	(( total_count += 1 ))
-	sources_c_n_evr_status=${sources_c_n_evr}/_status
-	if [[ -f ${sources_c_n_evr_status} && $(< ${sources_c_n_evr_status}) = "successful" ]]; then
+	sources_c_n_vr_status=${sources_c_n_vr}/_status
+	if [[ -f ${sources_c_n_vr_status} && $(< ${sources_c_n_vr_status}) = "successful" ]]; then
 	    echo -n ' '
 	    (( skip_count += 1 ))
 	    (( msg_count += 1 ))
 	    newline_maybe $msg_count &&  msg_count=0
 	    continue
-	elif [ -f ${sources_c_n_evr_status} ]; then
-	    rm -rf ${sources_c_n_evr}/*(N)
+	elif [ -f ${sources_c_n_vr_status} ]; then
+	    rm -rf ${sources_c_n_vr}/*(N)
 	    (( retry_count += 1 ))
 	else
-	    rm -rf ${sources_c_n_evr}/*(N)
+	    rm -rf ${sources_c_n_vr}/*(N)
 	fi
 
 	if SRPMIX7_XCMD_DIR=$XCMD ${SRPMIX7} expand \
 			   --stype file --sloc $s \
-			   --dtype dir --dloc ${sources_c_n_evr} \
+			   --dtype dir --dloc ${sources_c_n_vr} \
 			   srpm; then
 	    p_green .
 	    (( successful_count += 1 ))
@@ -106,14 +106,14 @@ run ()
 		    (( msg_count += 1 ))
 		    newline_maybe $msg_count &&  msg_count=0
 		    early_error_src+=${s:t}
-		    early_error_dest+=${sources_c_n_evr#{sources_c}}
+		    early_error_dest+=${sources_c_n_vr#{sources_c}}
 		    ;;
 		(2) p_yellow f
 		    (( error_count += 1 ))
 		    (( msg_count += 1 ))
 		    newline_maybe $msg_count &&  msg_count=0
 		    error_src+=${s:t}
-		    error_dest+=${sources_c_n_evr#{sources_c}}
+		    error_dest+=${sources_c_n_vr#{sources_c}}
 		    ;;
 		(*) echo "UNEXPECTED EXIT STATUS" 2>&1
 		    exit 0
