@@ -156,6 +156,6 @@ main ()
     done
 }
 
-D=$1
+D=${1%/}
 shift 
 main "$@"
