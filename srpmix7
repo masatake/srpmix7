@@ -590,7 +590,7 @@ i_expand_run()
 		opt=${1%%=*}
 		next=${1#*=}
 		shift 1
-		1=( "$opt" "$next" "$@" )
+		set -- "$opt" "$next" "$@"
 		;;
 	    (--help-expander|--help-stype|--help-dtype)
 		opt=$1
