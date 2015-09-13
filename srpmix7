@@ -34,6 +34,7 @@ readonly c_version=7.0.0
 #
 # Namespace
 #
+# d_: deploy related
 # c_: constant value in files in "raw directory"
 # i_: internal subcommand
 # p_: file/directory names of lower directory structure
@@ -62,6 +63,16 @@ readonly -x s_unknown=unknown
 readonly -x s_successful=successful
 readonly -x s_early_error=ERROR
 readonly -x s_error=error
+
+#
+# Upper directory structure
+#
+readonly -x P_sources=sources
+readonly -x P_cradles=cradles
+readonly -x P_cradle_sources=sources
+readonly -x P_cradle_conf=_.cradle
+readonly -x P_cradle_log=_log
+readonly -x P_cradle_bundles=_bundles
 
 #
 # Rearrange zsh behavior
@@ -479,6 +490,529 @@ i_help_run()
 	-E-  "$i: no such subcommand: $c"
     fi
 }
+
+#
+#
+# Subcommand: deploy
+#
+#
+ICMD+=deploy
+ICMD_DESC[deploy]="deploy a set of source code"
+typeset -A CRADLE_TYPE
+
+i_deploy_help()
+{
+    local k
+
+    echo "$SELF deploy [OPTIONS] CRADLE-FILE DEST-DIR"
+    echo
+    echo "OPTIONS:"
+    {
+	echo "	--debug"
+	echo "	--trace"
+    } | indent
+    echo
+    echo "Cradle file format:"
+    {
+	=printf "name=NAME\n"
+	=printf "type=CRADLE_TYPE\n"
+    } | indent
+    echo
+    echo "CRADLE_TYPE:"
+    for k in ${(k)CRADLE_TYPE}; do
+	=printf "%-10s	%s\n" "$k" "${CRADLE_TYPE[$k]}"
+    done  | indent
+}
+
+i_deploy_run()
+{
+    local -a args
+    args=( "$@" )
+    local c=${${0#i_}%_run}
+    local opt
+    local next
+    local debug
+    local elt
+
+    local cradle_file
+    local -a cradle_conf
+    local k v
+
+    local cradle_name
+    local cradle_type
+
+    local sources7
+    local fn
+    local r
+
+    __SUBCOMMAND_INIT__ $c
+    __SUBCOMMAND_PRE_PARSE_ARGS__ $c
+
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (--debug|-d)
+		debug=yes
+		shift
+		;;
+	    (--trace|-x)
+		set -x
+		shift
+		;;
+	    (--*)
+		-E- "$c: unknown long option: $1"
+		break
+		;;
+	    (-*)
+		-E- "$c: unknown short option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    if [[ -z "$1" ]]; then
+	-E- "$c: too few arguemnt, no cradle file is given"
+    elif [[ ! -e "$1" ]]; then
+	-E- "$c: no such directory entry: $1"
+    elif [[ ! -f "$1" ]]; then
+	-E- "$c: not a file: $1"
+    elif [[ ! -r "$1" ]]; then
+	-E- "$c: not readable: $1"
+    fi
+
+    cradle_file=$1
+    shift
+
+    for elt in ${(@f)"$(< ${cradle_file})"[@]}; do
+	case $elt in
+	    (\#*)
+		:
+		;;
+	    (name=*)
+		cradle_name=${elt#name=}
+		if [[ ${cradle_name} == */* ]]; then
+		    -E-  "${c}: cradle name should not contain '/' (in ${cradle_file})"
+		fi
+		;;
+	    (type=*)
+		cradle_type=${elt#type=}
+		if ! member "$cradle_type" ${(k)CRADLE_TYPE}; then
+		    -E- "$c: no such cradle type: $cradle_type"
+		fi
+		check_requirements cradle ${cradle_type}
+		;;
+	    (${cradle_type}_*=*)
+		k=${${elt#"${cradle_type}_"}%%=*}
+
+		if [[ -z ${cradle_type} ]]; then
+		    -E- "${c}: $k must be defined AFTER type= (in $cradle_file)"
+		elif [[ -z ${cradle_name} ]]; then
+		    -E- "${c}: $k must be defined AFTER name= (in $cradle_file)"
+		fi
+		v=${${${elt#*=}//"%{name}"/"${cradle_name}"}//"%{type}"/${cradle_type}}
+		cradle_conf+=( "$k" "$v" )
+		;;
+	    (*)
+		-E- "${c}: unexpected line <$elt> (in $cradle_file)"
+		;;
+	esac
+    done
+
+    if [[ -z "$1" ]]; then
+	-E- "$c: too few arguemnt, no sources7 directory is given"
+    elif [[ ! -e "$1" ]]; then
+	-E- "$c: no such directory entry: $1"
+    elif [[ ! -d "$1" ]]; then
+	-E- "$c: not a directory: $1"
+    elif [[ ! -r "$1" ]]; then
+	-E- "$c: not readable: $1"
+    elif [[ ! -x "$1" ]]; then
+	-E- "$c: not executable: $1"
+    elif [[ ! -w "$1" ]]; then
+	-E- "$c: not writable: $1"
+    else
+	sources7=$1
+	shift
+    fi
+
+    fn=d_${cradle_type}_deploy
+
+    {
+	local cradledir=${sources7}/${P_cradles}/${cradle_name}
+	integer -l cradlefd
+
+	if ! mkdir -p ${cradledir}; then
+	    -E- "${c}: failed to create \"${P_cradles}\"(${cradledir}) directory for ${cradle_name}"
+	fi
+
+	if ! lock cradlefd ${cradledir}; then
+	    -E- "${c}: other process may work on ${cradle_name} (faild to lock ${cradledir})"
+	fi
+
+	local cradle=${sources7}/${P_cradles}/${cradle_name}
+	local cradle_sources=${cradle}/${P_cradle_sources}
+	local cradle_bundles=${cradle}/${P_cradle_bundles}
+	local cradle_log=${cradle}/${P_cradle_log}
+	local sources=${sources7}/${P_sources}
+
+	if ! mkdir -p  ${cradle_log}; then
+	    -E- "${c}: failed to create ${cradle_sources}"
+	fi
+
+	{
+	    if ! mkdir -p  ${cradle_sources}; then
+		-E- "${c}: failed to create ${cradle_sources}"
+	    fi
+
+	    if ! mkdir -p  ${cradle_bundles}; then
+		-E- "${c}: failed to create ${cradle_bundles}"
+	    fi
+
+	    if ! mkdir -p ${sources}; then
+		-E- "${c}: failed to create ${sources}"
+	    fi
+
+	    progress_init "${cradle_name}" ${cradle_log}/d_progress.log ${cradle_log}/d_critical.log
+	    "${fn}" ${cradle_name} cradle_conf ${sources7}
+	    r=$?
+	    progress_fini "${cradle_name}"
+
+	    {
+		local -A conf
+		echo "name=${cradle_name}"
+		echo "type=${cradle_type}"
+
+		conf=( ${cradle_conf[@]} )
+		for k in ${(k)conf}; do
+		    echo "${cradle_type}_${k}=${conf[$k]}"
+		done
+
+	    } > ${cradle}/${P_cradle_conf}
+
+	} 2>&1 | tee ${cradle_log}/d.log
+
+	unlock $cradlefd
+    }
+}
+
+CRADLE_TYPE[dir]="flatten directory"
+REQUIREMENTS[cradle_dir]="flock setfattr"
+
+typeset -A PROGRESS_REPORT_CHAR
+
+readonly -x r_unknown_file='?'
+PROGRESS_REPORT_CHAR[$r_unknown_file]="unknown file for expanding"
+
+readonly -x r_broken_input='<'
+PROGRESS_REPORT_CHAR[$r_broken_input]="MAYBE INPUT FILE IS BROKEN"
+
+readonly -x r_unexpected_env='>'
+PROGRESS_REPORT_CHAR[$r_broken_env]="UNEXPECTED RUNTIME ENVIRONMENT"
+
+readonly -x r_locked='_'
+PROGRESS_REPORT_CHAR[$r_locked]="cannot get file lock"
+
+readonly -x r_skipped=','
+PROGRESS_REPORT_CHAR[$r_skipped]="already successfully deployed"
+
+readonly -x r_successful='.'
+PROGRESS_REPORT_CHAR[$r_successful]="successfully expanded"
+
+readonly -x r_bug='!'
+PROGRESS_REPORT_CHAR[$r_bug]="MAYBY A BUG IN EXPAND SUBCOMMAND"
+
+readonly -x r_failed_in_prep='f'
+PROGRESS_REPORT_CHAR[$r_failed_in_prep]="failed in %prep"
+
+readonly -x r_unknown='*'
+PROGRESS_REPORT_CHAR[$r_unknown]="unkonown"
+
+progress_cradle=
+progress_source=
+integer progress_fd
+integer critical_fd
+
+typeset -A progress_counter
+typeset -A progress_details
+
+progress_init()
+{
+    progress_cradle=$1
+    local progress_file=$2
+    local critical_file=$3
+    local k
+
+    exec {progress_fd}> ${progress_file}
+    exec {critical_fd}> ${critical_file}
+
+    progress_counter[TOTAL]=0
+    progress_counter[MSG]=0
+    for k in ${(k)PROGRESS_REPORT_CHAR}; do
+	progress_counter[$k]=0
+    done
+
+    progress_counter[MSG]=0
+    for k in ${(k)PROGRESS_REPORT_CHAR}; do
+	progress_details[$k]=""
+    done
+
+    echo "Cradle: [$progress_cradle]"
+    echo '======================================================================'
+    echo -n START:
+    date
+    {
+	echo Cradle: $cradle
+	echo '======================================================================'
+	echo -n START:
+	date
+	echo
+
+    } >&${progress_fd}
+}
+
+progress_fini()
+{
+    progress_cradle=$1
+    local k
+    local l
+
+    echo
+    echo -n END:
+    date
+    echo
+    =printf "%-35s%s %25s\n"   "TOTAL"  " - " "${progress_counter[TOTAL]}"
+    for k in ${(k)PROGRESS_REPORT_CHAR}; do
+	=printf "%-35s(%c) %25s\n"   "${PROGRESS_REPORT_CHAR[$k]}" "$k" "${progress_counter[$k]}"
+    done | sort
+
+    echo
+    for k in ${(k)PROGRESS_REPORT_CHAR}; do
+	if [[ -z "${progress_details[$k]}" ]]; then
+	    continue
+	else
+	    case $k in
+		($r_skipped|$r_successful)
+		continue
+		;;
+	    esac
+	fi
+	=printf "%s(%c)\n"   "${PROGRESS_REPORT_CHAR[$k]}" "$k"
+	echo '----------------------------------------------------------------------'
+	for l in ${(f)${progress_details[$k]}}; do
+	    echo $l
+	done
+    done
+
+    {
+	echo
+	echo -n END:
+	date
+	echo
+	=printf "%-35s%s %25s\n"   "TOTAL"  " - " "${progress_counter[TOTAL]}"
+	for k in ${(k)PROGRESS_REPORT_CHAR}; do
+	    =printf "%-35s(%c) %25s\n"   "${PROGRESS_REPORT_CHAR[$k]}" "$k" "${progress_counter[$k]}"
+	done | sort
+
+	echo
+	for k in ${(k)PROGRESS_REPORT_CHAR}; do
+	    if [[ -z "${progress_details[$k]}" ]]; then
+		continue
+	    else
+		case $k in
+		    ($r_skipped|$r_successful)
+			continue
+			;;
+		esac
+	    fi
+	    =printf "%s(%c)\n"   "${PROGRESS_REPORT_CHAR[$k]}" "$k"
+	    echo '----------------------------------------------------------------------'
+	    for l in ${(f)${progress_details[$k]}}; do
+		echo $l
+	    done
+	done
+    } >&${progress_fd}
+
+
+    exec {critical_fd}>&-
+    exec {progress_fd}>&-
+}
+
+progress_source()
+{
+    progress_source=$1
+}
+
+progress_newline_maybe()
+{
+    if [[ $1 -gt 68 ]]; then
+	echo "|"
+    else
+	return 1
+    fi
+}
+
+progress_report()
+{
+    local s=$1
+    local dloc=$2
+
+    echo -n "$s"
+    echo -n "$s" >&${progress_fd}
+
+    (( progress_counter[TOTAL] += 1 ))
+    (( progress_counter[MSG] += 1 ))
+    (( progress_counter[$s] += 1))
+
+    if [[ -n "${dloc}" ]]; then
+	progress_details[$s]+=$(=printf "%50s => %-20s\n" "${progress_source:t}" "${dloc:t}")"\n"
+    else
+	progress_details[$s]+=$(=printf "%50s\n" "${progress_source:t}")"\n"
+    fi
+
+    case "$s" in
+	(${r_broken_input}|${r_unexpected_env}|${r_bug}|"${r_unknown}")
+	    echo "$s(${PROGRESS_REPORT_CHAR[$s]})" "${progress_source}" "=>" "${dloc}"
+	    echo "$s(${PROGRESS_REPORT_CHAR[$s]})" "${progress_source}" "=>" "${dloc}" >&${critical_fd}
+	    ;;
+    esac
+
+    progress_newline_maybe ${progress_counter[MSG]} && progress_counter[MSG]=0
+    progress_newline_maybe ${progress_counter[MSG]} >&${progress_fd} && progress_counter[MSG]=0
+}
+
+d_dir_deploy()
+{
+    local self=dir
+    local cradle_name=$1
+    local -A conf
+    conf=( ${(P)2[@]} )
+    local sources7=$3
+
+    local cradle=${sources7}/${P_cradles}/${cradle_name}
+    local cradle_sources=${cradle}/${P_cradle_sources}
+    local cradle_log=${cradle}/${P_cradle_log}
+    local sources=${sources7}/${P_sources}
+
+    local dir=${conf[dir]}
+    local src_name
+    local src_version
+    local expander
+    local src
+    local dest
+    local r
+
+    if [[ -z "${dir}" ]]; then
+	-E- "${c}: ${self}_dir is not given in cradle ${cradle_name}"
+    elif ! [[ -e "${dir}" ]]; then
+	-E- "$c: no such directory entry: ${dir} specified in cradle ${cradle_name}"
+    elif ! [[ -r "${dir}" ]]; then
+	-E- "$c: cannot read directory: ${dir} specified in cradle ${cradle_name}"
+    elif ! [[ -x "${dir}" ]]; then
+	-E- "$c: cannot traverse directory: ${dir} specified in cradle ${cradle_name}"
+    fi
+
+    for src in ${dir}/*; do
+	progress_source "${src}"
+
+	case "${src}" in
+	    (*.src.rpm)
+		expander=srpm
+		;;
+	    (*)
+		progress_report ${r_unknown_file}
+		continue
+		;;
+	esac
+
+	if ! src_name=$(pname_name ${expander} $src); then
+	    progress_report ${r_broken_input}
+	    continue
+	fi
+	if ! src_version=$(pname_version ${expander} $src); then
+	    progress_report ${r_broken_input}
+	    continue
+	fi
+
+	dest=${sources}/${src_name[1]}/${src_name}/${src_version}--${expander}
+
+	if ! mkdir -p ${dest}; then
+	    -W- "${c}: skip [${cradle_name}]${src} because creating dir:${dest} is failed"
+	    progress_report "${r_unexpected_env}" ${dest}
+	    continue
+	fi
+
+	set +e
+	{
+	    integer -l destfd
+	    local s=${dest}/${p_status}
+
+	    if ! lock destfd ${dest}; then
+		-W- "${c}: other process may work on [${cradle_name}]${src}/${expander} (faild to lock ${dest})"
+		progress_report "${r_locked}" ${dest}
+		throw "${r_locked}"
+	    fi
+
+	    if [[ -f ${s} && $(< ${s}) == ${s_successful} ]]; then
+		progress_report "${r_skipped}" ${dest}
+		throw "${r_skipped}"
+	    fi
+
+	    rm -rf ${dest}/*(N)
+	    (
+		# TODO: TIMEOUT
+		subcommand_run expand --stype file --sloc $src --dtype dir --dloc ${dest} ${expander}
+	    )
+	    r=$?
+
+	    case $r in
+		(0) progress_report "${r_successful}" ${dest} ;;
+		(1) progress_report "${r_bug}" ${dest} ;;
+		(2) progress_report "${r_failed_in_prep}" ${dest};;
+		(*) progress_report "${r_unknown}" ${dest};;
+	    esac
+	} always {
+	    if catch '*'; then
+		:
+	    fi
+
+	    {
+		local base=${cradle_sources}/${src_name[1]}/${src_name}
+		# e.g. ln -s -t /tmp/8 -r /tmp/9/a
+		: &&
+		    mkdir -p "${base}" &&
+		    ln -f -s -t "${base}" -r ${dest}
+	    }
+
+	    {
+		# attr -q -l tmp/sources/r/rhs-hadoop-install/2_29-1.el6rhs--srpm
+		local key="${prefix}-ref-cradle-${cradle_name}"
+		setfattr -n user.${key} -v "${c_version}" ${dest}
+	    }
+	    if [[ -n "${destfd}" ]]; then
+		unlock $destfd
+	    fi
+	}
+	set -e
+    done
+
+    return 0
+}
+
+
+CRADLE_TYPE[yum]="yumrepo (not implemented yet)"
+REQUIREMENTS[cradle_yumrepo]="yum repoquery"
+
 
 #
 #
@@ -1409,6 +1943,17 @@ x_expand_brpm_check()
 
 EXPANDER[srpm]="source rpm"
 REQUIREMENTS[expander_srpm]="rpm rpmbuild"
+
+x_expand_srpm_name_name()
+{
+    rpm --nosignature -qp --queryformat "%{NAME}\n" $1
+}
+
+x_expand_srpm_name_version()
+{
+    rpm --nosignature -qp --queryformat "%{VERSION}-%{RELEASE}\n" $1
+}
+
 x_expand_srpm_help()
 {
     :
@@ -1915,6 +2460,54 @@ vanilla()
     )
     return $?
 }
+
+#
+# pname
+#
+pname_name()
+{
+    local expander=$1
+    local src=$2
+
+    # TODO check
+    x_expand_${expander}_name_name $2
+
+}
+
+pname_version()
+{
+    local expander=$1
+    local src=$2
+
+    # TODO check
+    x_expand_${expander}_name_version $2
+}
+
+
+#
+# file locking
+#
+lock()
+{
+    local v=$1
+    integer -l r
+
+    exec {r}< $2
+    if flock --nonblock $r; then
+	eval "$v"="$r"
+	return 0
+    else
+	return 1
+    fi
+}
+
+unlock()
+{
+    integer -l r=$1
+    exec {r}>&-
+}
+
+
 run "$@"
 
 #
