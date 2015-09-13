@@ -36,7 +36,8 @@ readonly c_version=7.0.0
 #
 # c_: constant value in files in "raw directory"
 # i_: internal subcommand
-# p_: file/directory names in files in "raw directory"
+# p_: file/directory names of lower directory structure
+# P_: file/directory names of upper directory structure
 # s_: status ofexpansion
 # x_: expander
 # __: hook
@@ -44,7 +45,7 @@ readonly c_version=7.0.0
 
 
 #
-# Protocols (sources standard directory layout)
+# Lower directory structure
 #
 readonly -x p_archives=archives
 readonly -x p_pre_build=pre-build
