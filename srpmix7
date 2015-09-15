@@ -41,7 +41,6 @@ readonly c_version=7.0.0
 # P_: file/directory names of upper directory structure
 # s_: status ofexpansion
 # x_: expander
-# __: hook
 #
 
 
@@ -544,9 +543,6 @@ i_deploy_run()
     local sources7
     local fn
     local r
-
-    __SUBCOMMAND_INIT__ $c
-    __SUBCOMMAND_PRE_PARSE_ARGS__ $c
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -1112,9 +1108,6 @@ i_expand_run()
     local s
     local r
 
-    __SUBCOMMAND_INIT__ $c
-
-    __SUBCOMMAND_PRE_PARSE_ARGS__ $c
     while [[ $# -gt 0 ]]; do
 	case $1 in
 	    (--help|-h)
@@ -1333,8 +1326,6 @@ i_expand_run()
     # TODO: check the status of $dloc
     #       if not expanded yet, lock the directory.
     #
-    __SUBCOMMAND_POST_PARSE_ARGS__ $c
-
     {
 	if ! t=$(mktemp --tmpdir --directory ${SELF}-EXPAND-${expander}.XXXXXXXXXX) ; then
 	    throw Creation
@@ -1373,7 +1364,6 @@ i_expand_run()
 	set -e
 
 
-	__SUBCOMMAND_PRE_RUN__ $c
 	set +e
 	if [[ $#slocs_local == 1 ]]; then
 	    # Passing a file under the temporary directory.
@@ -1388,7 +1378,6 @@ i_expand_run()
 	fi
 	s=$?
 	set -e
-	__SUBCOMMAND_POST_RUN__ $c $s
     } always {
 	local delayed_emsg
 
@@ -1444,8 +1433,6 @@ i_expand_run()
 	    -E- "${delayed_emsg}"
 	fi
     }
-
-    __SUBCOMMAND_FINI__ $c $r
 
     return $r
 }
@@ -2122,10 +2109,7 @@ x_expand_lcopy_check()
 #
 #
 
-#
-# Hooks
-#
-__INIT__()
+init()
 {
     XCMD_DIR=${SRPMIX7_XCMD_DIR:-${EVAR_DEFAULT[XCMD_DIR]}}
     if [[ ! -d "${XCMD_DIR}" ]]; then
@@ -2142,63 +2126,6 @@ __INIT__()
     else
 	SRPMIX7_XCMD_DIR=${XCMD_DIR}
     fi
-}
-
-__PRE_PARSE_ARGS__()
-{
-    :
-}
-
-__POST_PARSE_ARGS__()
-{
-    :
-}
-
-
-__PRE_RUN_SUBCOMMAND__()
-{
-    :
-}
-
-__SUBCOMMAND_INIT__()
-{
-    :
-}
-
-
-__SUBCOMMAND_PRE_PARSE_ARGS__()
-{
-    :
-}
-
-__SUBCOMMAND_POST_PARSE_ARGS__()
-{
-    :
-}
-
-__SUBCOMMAND_PRE_RUN__()
-{
-    :
-}
-
-__SUBCOMMAND_POST_RUN__()
-{
-    :
-}
-
-__SUBCOMMAND_FINI__()
-{
-    :
-}
-
-__POST_RUN_SUBCOMMAND__()
-{
-    :
-}
-
-__FINI__()
-{
-    :
 }
 
 help()
@@ -2231,10 +2158,6 @@ run()
     local c
     local r
 
-    __INIT__
-
-    __PRE_PARSE_ARGS__
-
     if [[ $# -eq 0 ]]; then
 	help 1 1>&2
     else
@@ -2254,8 +2177,6 @@ run()
 	esac
     fi
 
-    __POST_PARSE_ARGS__
-
     if ! subcommand_exist_p "$1"; then
 	-E%- "unknown subcommand: %s\n" "$1"
     else
@@ -2263,15 +2184,9 @@ run()
 	shift
     fi
 
-    __PRE_RUN_SUBCOMMAND__
 
     subcommand_run "$c" "$@"
     r=$?
-
-    __POST_RUN_SUBCOMMAND__
-
-
-    __FINI__
 
     return $r
 }
@@ -2508,6 +2423,7 @@ unlock()
 }
 
 
+init
 run "$@"
 
 #
