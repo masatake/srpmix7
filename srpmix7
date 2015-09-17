@@ -49,7 +49,7 @@ readonly c_version=7.0.0
 #
 readonly -x p_archives=archives
 readonly -x p_pre_build=pre-build
-readonly -x p_specs=specs
+readonly -x p_info=info
 readonly -x p_status=_status
 readonly -x p_bundles=_bundles
 readonly -x p_uname=_uname
@@ -1505,7 +1505,7 @@ x_prepare()
     local d=$1
     local elt
 
-    for elt in $p_archives $p_pre_build $p_specs $p_bundles $p_uname $p_log $p_xtmp $p_stmp; do
+    for elt in $p_archives $p_pre_build $p_info $p_bundles $p_uname $p_log $p_xtmp $p_stmp; do
 	if ! mkdir ${d}/${elt}; then
 	    return 1
 	fi
@@ -1909,7 +1909,7 @@ x_expand_brpm_run()
     echo "rpm2cpio" > $t/$p_uname/x_brpm_method
     for tag in $(rpm --nosignature --querytags); do
 	rpm --nosignature -qp --queryformat '[%{'${tag}'}\n]' "${brpm}" \
-	    > $t/$p_specs/brpm_query_${tag//\//_/}
+	    > $t/$p_info/brpm_query_${tag//\//_/}
     done
 
     {
@@ -1977,7 +1977,7 @@ x_expand_srpm_run()
     #
     for tag in $(rpm --nosignature --querytags); do
 	rpm --nosignature -qp --queryformat '[%{'${tag}'}\n]' "${srpm}" \
-	    > $t/$p_specs/srpm_query_${tag//\//_/}
+	    > $t/$p_info/srpm_query_${tag//\//_/}
     done
 
     {
@@ -2021,8 +2021,8 @@ x_expand_srpm_run()
 	fi
 
 	if [[ -f "${t_spec[1]}" ]]; then
-	    mv "${t_spec[1]}"   $t/$p_specs/${t_spec[1]:t}
-	    ln -s ./${t_spec[1]:t} $t/$p_specs/srpm.spec
+	    mv "${t_spec[1]}"   $t/$p_info/${t_spec[1]:t}
+	    ln -r -s $t/$p_info/${t_spec[1]:t} $t/srpm.spec
 	fi
 
 	# TODO HANDLE ERRORS
@@ -2100,7 +2100,7 @@ x_expand_lcopy_run()
     lcopy_checkout $lcopy $t/$p_xtmp > $t/$p_log/x_lcopy-checkout.log 2>&1
     s=$?
     echo $s > "$t/$p_log/x_lcopy-checkout.status"
-    cp ${lcopy} $t/$p_specs/_.lcopy
+    cp ${lcopy} $t/$p_info/_.lcopy
     if ! is_empty_dir "$t/$p_xtmp"; then
 	mv $t/$p_xtmp/*      $t/$p_archives
     fi
