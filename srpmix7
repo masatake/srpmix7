@@ -2011,11 +2011,14 @@ x_expand_srpm_run()
 	    ln -s ./${t_spec[1]:t} $t/$p_specs/srpm.spec
 	fi
 
+	# TODO HANDLE ERRORS
 	if [[ -d "$t/$p_xtmp/SOURCES" ]] && ( ! is_empty_dir "$t/$p_xtmp/SOURCES" ); then
+	    make_all_readable    "$t/$p_xtmp/SOURCES"
 	    mv $t/$p_xtmp/SOURCES/*      $t/$p_archives
 	fi
 
 	if [[ -d "$t/$p_xtmp/BUILD" ]] && ( ! is_empty_dir "$t/$p_xtmp/BUILD" ); then
+	    make_all_readable    "$t/$p_xtmp/BUILD"
 	    mv $t/$p_xtmp/BUILD/*     $t/$p_pre_build
 	fi
     }
@@ -2026,10 +2029,6 @@ x_expand_srpm_run()
 					       > "$t/$p_log/x_srpm-clean-patch-backupfile.log"
     fi
 
-    make_all_readable    "$t/$p_archives"
-    make_all_readable    "$t/$p_pre_build"
-
-    # TODO: git will rewrite the contents.
     make_file_unwritable "$t/$p_archives"
     make_file_unwritable "$t/$p_pre_build"
 
