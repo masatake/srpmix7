@@ -2106,7 +2106,7 @@ x_expand_lcopy_run()
     fi
 
     if [[ $s != 0 ]]; then
-	=printf "%s (%s: %s)\n" $s_incomplete $(lcopy_describe_error $s) ${locpy:t} \
+	=printf "%s (%s: %s)\n" $s_incomplete $(lcopy_describe_error $s) ${lcopy:t} \
 	 > $t/.$p_status
     fi
     return $s
