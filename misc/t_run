@@ -73,7 +73,7 @@ run()
 		tee -a ${log} <<<  "passed(expand+extra)"
 		return 0
 	    else
-		tee -a ${log} <<< "ERROR (extra check with $v)"
+		tee -a ${log} <<< "error (extra check with $v)"
 	    fi
 	else
 	    tee -a ${log} <<< "passed(expand)"
@@ -81,7 +81,7 @@ run()
 	fi
     else
 	case $status in
-	    (1) tee -a ${log} <<< "ERROR (prepare,BUG?)"
+	    (1) tee -a ${log} <<< "BUG (prepare,BUG?)"
 		echo
 		=printf "%40s\n" -------
 		=printf "%40s\n" "DETAILS"
@@ -91,7 +91,7 @@ run()
 		echo
 		echo
 		return 1;;
-	    (2) tee -a ${log} <<< "error (expand)"
+	    (2) tee -a ${log} <<< "incomplete (expand)"
 		return 2;;
 	esac
     fi
