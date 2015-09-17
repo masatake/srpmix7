@@ -1990,7 +1990,8 @@ x_expand_srpm_run()
 	fi
 
 	rpmbuild --define="_topdir $t/$p_xtmp" --nodeps --target=x86_64 -bp ${t_spec[1]} \
-		 > "$t/$p_log/x_srpm-rpmbuild-bp.log" 2>&1
+		 > "$t/$p_log/x_srpm-rpmbuild-bp.log" 2>&1 \
+		 < <(yes "")
 	s=$?
 	echo $s > "$t/$p_log/x_srpm-rpmbuild-bp.status"
 	if [[ $s != 0 ]]; then
