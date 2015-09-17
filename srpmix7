@@ -272,6 +272,11 @@ make_file_unwritable()
     return $?
 }
 
+name_prefix()
+{
+    echo -n ${1[1]}
+}
+
 #
 #
 # Subcommand related operations
@@ -945,7 +950,7 @@ d_dir_deploy()
 	    continue
 	fi
 
-	dest=${sources}/${src_name[1]}/${src_name}/${src_version}--${expander}
+	dest=${sources}/$(name_prefix "${src_name}")/${src_name}/${src_version}--${expander}
 
 	if ! mkdir -p ${dest}; then
 	    -W- "${c}: skip [${cradle_name}]${src} because creating dir:${dest} is failed"
@@ -988,7 +993,7 @@ d_dir_deploy()
 	    fi
 
 	    {
-		local base=${cradle_sources}/${src_name[1]}/${src_name}
+		local base=${cradle_sources}/$(name_prefix "${src_name}")/${src_name}
 		# e.g. ln -s -t /tmp/8 -r /tmp/9/a
 		: &&
 		    mkdir -p "${base}" &&
