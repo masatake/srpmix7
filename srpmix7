@@ -63,6 +63,11 @@ readonly -x s_successful=successful
 readonly -x s_bug=BUG
 readonly -x s_incomplete=incomplete
 
+readonly -x p_unknown=${(U)${s_unknown}}
+readonly -x p_successful=${(U)${s_successful}}
+readonly -x p_bug=${(U)${s_bug}}
+readonly -x p_incomplete=${(U)${s_incomplete}}
+
 #
 # Upper directory structure
 #
@@ -1385,6 +1390,7 @@ i_expand_run()
 	    r=1
 	    if [[ "$action_when_error" == continue ]]; then
 		echo "$s_bug" "(failed to create working directory for expanding)\n" > $t/.$p_status
+		ln -f -s -r $t/$p_status $t/$p_bug
 	    else
 		delayed_emsg="$c: failed to create working directory for expanding"
 	    fi
@@ -1392,6 +1398,7 @@ i_expand_run()
 	    r=1
 	    if [[ "$action_when_error" == continue ]]; then
 		echo "$s_bug" "(failed to prepare a directory for expansion)\n" > $t/.$p_status
+		ln -f -s -r $t/$p_status $t/$p_bug
 	    else
 		delayed_emsg="$c: failed to prepare a directory for expansion"
 	    fi
@@ -1401,13 +1408,18 @@ i_expand_run()
 		r=1
 		if [[ "$action_when_error" == continue ]]; then
 		    echo "$s_bug" "(failed to transfer data source from $sloc to $t by $stype)\n" > $t/.$p_status
+		    ln -f -s -r $t/$p_status $t/$p_bug
 		else
 		    delayed_emsg="$c: failed to transfer data source from $sloc to $t by $stype"
 		fi
 	    elif [[ "$s" == 0 ]]; then
 		r=0
 		echo $s_successful > $t/.$p_status
+		ln -f -s -r $t/$p_status $t/$p_successful
 	    else
+		if [[ ! -e $t/$p_incomplete ]]; then
+		    ln -f -s -r $t/$p_status $t/$p_incomplete
+		fi
 		r=2
 	    fi
 	    if [[ "$s" == 0 || "$action_when_error" == continue ]]; then
@@ -2005,6 +2017,7 @@ x_expand_srpm_run()
 	    =printf "%s (wrong number of spec file(s): ${#t_spec})\n" $s_incomplete > $t/.$p_status
 	elif catch RPMBUILD_BP; then
 	    =printf "%s (failed in rpmbuild -bp srpm.spec)\n" $s_incomplete > $t/.$p_status
+	    ln -f -s -r $t/$p_log/x_srpm-rpmbuild-bp.log  $t/$p_incomplete
 	fi
 
 	if [[ -f "${t_spec[1]}" ]]; then
