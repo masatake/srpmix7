@@ -983,6 +983,7 @@ d_dir_deploy()
 	{
 	    integer -l destfd
 	    local s=${dest}/${p_status}
+	    local sv
 
 	    if ! lock destfd ${dest}; then
 		-W- "${c}: other process may work on [${cradle_name}]${src}/${expander} (faild to lock ${dest})"
@@ -991,7 +992,7 @@ d_dir_deploy()
 	    fi
 
 	    if [[ -f ${s} ]]; then
-		local sv=$(< ${s})
+		sv=$(< ${s})
 		case "${sv}" in
 		    (${s_successful})
 			progress_report "${r_skipped}" ${dest}
