@@ -996,7 +996,7 @@ d_dir_deploy()
 			progress_report "${r_skipped}" ${dest}
 			throw "${r_skipped}"
 			;;
-		    (${s_incomplete})
+		    (${s_incomplete}*)
 			if [[ "${force_skipping}" == yes ]]; then
 			    progress_report "${r_forced_skipping}" ${dest}
 			    throw "${r_forced_skipping}"
