@@ -519,6 +519,7 @@ i_deploy_help()
     {
 	echo "	--debug"
 	echo "	--trace"
+	echo "	--skip-incomplete-ones|-s"
     } | indent
     echo
     echo "Cradle file format:"
@@ -554,6 +555,8 @@ i_deploy_run()
     local fn
     local r
 
+    local force_skpping
+
     while [[ $# -gt 0 ]]; do
 	case $1 in
 	    (--help|-h)
@@ -568,6 +571,10 @@ i_deploy_run()
 		;;
 	    (--debug|-d)
 		debug=yes
+		shift
+		;;
+	    (--skip-incomplete-ones|-s)
+		force_skpping=-s
 		shift
 		;;
 	    (--trace|-x)
@@ -690,7 +697,7 @@ i_deploy_run()
 	    fi
 
 	    progress_init "${cradle_name}" ${cradle_log}/d_progress.log ${cradle_log}/d_critical.log
-	    "${fn}" ${cradle_name} cradle_conf ${sources7}
+	    "${fn}" ${cradle_name} cradle_conf ${sources7} ${force_skpping}
 	    r=$?
 	    progress_fini "${cradle_name}"
 
@@ -731,6 +738,9 @@ PROGRESS_REPORT_CHAR[$r_locked]="cannot get file lock"
 
 readonly -x r_skipped=','
 PROGRESS_REPORT_CHAR[$r_skipped]="already successfully deployed"
+
+readonly -x r_forced_skipping=';'
+PROGRESS_REPORT_CHAR[$r_forced_skipping]="forced skipping failed one"
 
 readonly -x r_successful='.'
 PROGRESS_REPORT_CHAR[$r_successful]="successfully expanded"
@@ -808,7 +818,7 @@ progress_fini()
 	    continue
 	else
 	    case $k in
-		($r_skipped|$r_successful)
+		($r_skipped|$r_forced_skipping|$r_successful)
 		continue
 		;;
 	    esac
@@ -836,7 +846,7 @@ progress_fini()
 		continue
 	    else
 		case $k in
-		    ($r_skipped|$r_successful)
+		    ($r_skipped|$r_forced_skipping|$r_successful)
 			continue
 			;;
 		esac
@@ -904,6 +914,17 @@ d_dir_deploy()
     local -A conf
     conf=( ${(P)2[@]} )
     local sources7=$3
+    shift 3
+    local force_skipping
+
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (-s)
+		force_skipping=yes
+		shift
+		;;
+	esac
+    done
 
     local cradle=${sources7}/${P_cradles}/${cradle_name}
     local cradle_sources=${cradle}/${P_cradle_sources}
@@ -969,9 +990,20 @@ d_dir_deploy()
 		throw "${r_locked}"
 	    fi
 
-	    if [[ -f ${s} && $(< ${s}) == ${s_successful} ]]; then
-		progress_report "${r_skipped}" ${dest}
-		throw "${r_skipped}"
+	    if [[ -f ${s} ]]; then
+		local sv=$(< ${s})
+		case "${sv}" in
+		    (${s_successful})
+			progress_report "${r_skipped}" ${dest}
+			throw "${r_skipped}"
+			;;
+		    (${s_incomplete})
+			if [[ "${force_skipping}" == yes ]]; then
+			    progress_report "${r_forced_skipping}" ${dest}
+			    throw "${r_forced_skipping}"
+			fi
+			;;
+		esac
 	    fi
 
 	    rm -rf ${dest}/*(N)
