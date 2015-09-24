@@ -555,7 +555,7 @@ i_deploy_run()
     local fn
     local r
 
-    local force_skpping
+    local force_skipping
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -574,7 +574,7 @@ i_deploy_run()
 		shift
 		;;
 	    (--skip-incomplete-ones|-s)
-		force_skpping=-s
+		force_skipping=-s
 		shift
 		;;
 	    (--trace|-x)
@@ -697,7 +697,7 @@ i_deploy_run()
 	    fi
 
 	    progress_init "${cradle_name}" ${cradle_log}/d_progress.log ${cradle_log}/d_critical.log
-	    "${fn}" ${cradle_name} cradle_conf ${sources7} ${force_skpping}
+	    "${fn}" ${cradle_name} cradle_conf ${sources7} ${force_skipping}
 	    r=$?
 	    progress_fini "${cradle_name}"
 
