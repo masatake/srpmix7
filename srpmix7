@@ -840,6 +840,7 @@ b_commit()
     local msg=$2
     echo "$msg" > $d/.$p_status
     mv $d/.$p_status $d/$p_status
+    make_all_readable $d
 }
 
 b_prepare()
