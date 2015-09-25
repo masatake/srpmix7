@@ -552,6 +552,14 @@ BUNDLES[uctags_TAGS_archives]=$(printf "${uctags_desc}" TAGS archives)
 BUNDLE_VERSION[uctags_TAGS_archives]="0.0.0"
 REQUIREMENTS[bundle_uctags_TAGS_archives]="${UCTAGS}"
 
+BUNDLES[uctags_hacker]="tags for universal ctags hacking"
+BUNDLE_VERSION[uctags_hacker]=$(${UCTAGS} --version | sed -n 's/Universal Ctags Development(\([^)]*\)).*/\1/p')
+REQUIREMENTS[bundle_uctags_hacker]="${UCTAGS}"
+
+b_run_uctags_hacker()
+{
+    b_run_uctags_tags_common . "$@" --fields='*' --kinds-'*'='*'
+}
 
 b_run_uctags_tags_pre_build()
 {
@@ -606,7 +614,11 @@ b_run_uctags_tags_common()
 	suffix=tags
     fi
 
-    o=$t/${subtarget}.${suffix}
+    if [[ "${subtarget}" == '.' ]]; then
+	o=$t/${suffix}
+    else
+	o=$t/${subtarget}.${suffix}
+    fi
     if [[ -e "$d/${subtarget}" ]]; then
 	if [[ -d "${d}/${subtarget}" ]]; then
 	    flag=-R
