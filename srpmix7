@@ -39,6 +39,7 @@ readonly UCTAGS=${UCTAGS:-~/bin/u-ctags}
 # c_: constant value in files in "raw directory"
 # d_: deploy related
 # i_: internal subcommand
+# l_: link related
 # p_: file/directory names of lower directory structure
 # P_: file/directory names of upper directory structure
 # s_: status ofexpansion
@@ -87,6 +88,7 @@ readonly -x P_cradle_sources=sources
 readonly -x P_cradle_conf=_.cradle
 readonly -x P_cradle_log=_log
 readonly -x P_cradle_bundles=_bundles
+readonly -x P_dists=dists
 
 #
 # Rearrange zsh behavior
@@ -133,6 +135,10 @@ REQUIREMENTS=(
 
 typeset -A BUNDLES
 BUNDLES=(
+)
+
+typeset -A LTYPES
+LTYPES=(
 )
 
 #
@@ -487,6 +493,227 @@ i_null_help()
 i_null_run()
 {
     echo i_null_run
+}
+
+#
+#
+# Subcommand: link
+#
+#
+ICMD+=link
+ICMD_DESC[link]="make links"
+
+i_link_help()
+{
+    local k
+
+    echo "$SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR PACKAGE/VERSION--EXPANDER..."
+    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR  --stdin"
+    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --iso"
+    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --comps"
+    echo
+
+    echo "OPTIONS:"
+    echo
+    {
+	echo "	--action-when-error=abort|continue*"
+	echo "	--debug"
+	echo "	--trace"
+    }
+    echo
+
+    echo "LTYPE:"
+    echo
+    for k in ${(k)LTYPES}; do
+	=printf "%-10s	%s\n" "$k" "${LTYPES[$k]}" | indent
+    done
+    echo
+}
+
+i_link_run()
+{
+    local c=${${0#i_}%_run}
+    local opt
+    local next
+    local action_when_error=continue
+    local -a targets
+
+    local ltype
+    local lname
+    local root
+    local target
+    local p
+    local v
+    local p0
+
+    local debug
+    local quit_after
+
+    local r
+
+    while true; do
+	case $1 in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		1=( "$opt" "$next" "$@" )
+		;;
+	    (--quit-after)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		else
+		    case "$2" in
+			(optparse|prepare) quit_after="--quit-after=$2" ;;
+			(*) -E- "$c: unexpected value for $opt" ;;
+		    esac
+		fi
+		shift 2
+		;;
+	    (--action-when-error)
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $1 is not given"
+		else
+		    case $2 in
+			(abort|continue) action_when_error="$2";;
+			(*) -E- "$c: unexpected value for $1: $2";;
+		    esac
+		fi
+		shift 2
+		;;
+	    (--debug)
+		debug=yes
+		shift
+		;;
+	    (--trace|-x)
+		set -x
+		shift
+		;;
+	    (-*|--*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    ltype=$1
+    shift
+
+    if [[ -z "${ltype}" ]]; then
+	-E- "$c: no LTYPE is given"
+    elif ! member "$ltype" ${(k)LTYPES}; then
+	-E- "$c: no such link type: $ltype"
+    fi
+
+    lname=$1
+    shift
+    if [[ -z "${lname}" ]]; then
+	-E- "$c: no LNAME is given"
+    elif [[ "${lname}" == */* ]]; then
+	-E- "$c: / is not acceptable as LNAME: ${lname}"
+    fi
+
+    root=$1
+    shift
+    if [[ -z "${root}" ]]; then
+	-E- "$c: no SOURCES7UPPDERDIR is given"
+    elif ! [[ -e "${root}" ]]; then
+	-E- "$c: no such dentry: ${root}"
+    elif ! [[ -d "${root}" ]]; then
+	-E- "$c: no such directory: ${root}"
+    elif ! [[ -e "${root}/${P_sources}" ]]; then
+	-E- "$c: no such dentry: ${root}/${P_sources}"
+    elif ! [[ -d "${root}/${P_sources}" ]]; then
+	-E- "$c: no such directory: ${root}/${P_sources}"
+    fi
+
+    for target in "$@"; do
+	if ! [[ "${target}" == */* ]]; then
+	    -E- "$c: / is not found in a PACKAGE/VERSION arguemnt: ${target}"
+	fi
+	p=${target:h}
+	v=${target:t}
+	p0=$(name_prefix $p)
+	if ! [[ -e "${root}/${P_sources}/${p0}/$p/$v" ]]; then
+	    if [[ "${action_when_error}" == 'abort' ]]; then
+		-E- "$c: no such target directory: ${root}/${P_sources}/${p0}/$p/$v"
+	    else
+		-W- "$c: no such target directory: ${root}/${P_sources}/${p0}/$p/$v"
+	    fi
+	else
+	    targets+=$target
+	fi
+    done
+
+    r=0
+    for target in ${target[@]}; do
+	l_run_${ltype} "${lname}" "${root}" || r=2
+    done
+    return $r
+}
+
+LTYPES[dists]="Links representing a distribution in sources7 upper directory structure"
+LTYPES[alias]="Links representing a distribution in sources7 lower directory structure"
+
+l_run_dists()
+{
+    local lname=$1
+    shift
+
+    local root=$1
+    shift
+
+    local target=$1
+    shift
+
+    local p
+    local v
+    local p0
+
+    if ! mkdir -p "${root}/${P_dists}/${lname}"; then
+	-E- "Failed to create a directory: ${root}/${P_dists}/${lname}"
+    fi
+
+    p=${target:h}
+    v=${target:t}
+
+    p0=$(name_prefix $p)
+    local key="${prefix}-ref-dists-${lname}"
+    : &&
+	ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${root}/${P_dists}/${lname}/$p" &&
+	setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
+}
+
+l_run_alias()
+{
+    local lname=$1
+    shift
+
+    local root=$1
+    shift
+
+    local target=$1
+    shift
+
+    local p
+    local v
+    local p0
+
+    p=${target:h}
+    v=${target:t}
+
+    p0=$(name_prefix $p)
+    local key="${prefix}-ref-alias-${lname}"
+    : &&
+	ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${root}/${P_sources}/${p0}/$p/"'^'"${lname}" &&
+	setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
 }
 
 #
