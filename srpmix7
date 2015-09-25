@@ -625,7 +625,11 @@ b_run_uctags_tags_common()
 	fi
 
 	${UCTAGS} -o $o ${flag} "$@" $d/${subtarget} || throw Ctags
-	sed -i -e "s|$d|../..|" $o || throw Sed
+	if member -e "$@"; then
+	    sed -i -e 's|^'"$d"'|../..|' $o || throw Sed
+	else
+	    sed -i -e 's|^\([^!][^\t]*\)	'$d'|\1	../..|' $o || throw Sed
+	fi
     else
 	return 1
     fi
