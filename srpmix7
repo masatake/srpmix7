@@ -2050,13 +2050,13 @@ x_expand_srpm_run()
 	elif catch WRONG_SPEC_NUM; then
 	    =printf "%s (wrong number of spec file(s): ${#t_spec})\n" $s_incomplete > $t/.$p_status
 	elif catch RPMBUILD_BP; then
-	    =printf "%s (failed in rpmbuild -bp srpm.spec)\n" $s_incomplete > $t/.$p_status
+	    =printf "%s (failed in rpmbuild -bp ${p_srpm_spec})\n" $s_incomplete > $t/.$p_status
 	    ln -f -s -r $t/$p_log/x_srpm-rpmbuild-bp.log  $t/$p_incomplete
 	fi
 
 	if [[ -f "${t_spec[1]}" ]]; then
 	    mv "${t_spec[1]}"   $t/$p_info/${t_spec[1]:t}
-	    ln -r -s $t/$p_info/${t_spec[1]:t} $t/srpm.spec
+	    ln -r -s $t/$p_info/${t_spec[1]:t} $t/${p_srpm_spec}
 	fi
 
 	# TODO HANDLE ERRORS
