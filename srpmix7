@@ -495,7 +495,7 @@ i_null_run()
 #
 #
 ICMD+=bundle
-ICMD_DESC[bundle]="make and manage bundles"
+ICMD_DESC[bundle]="make bundles"
 
 i_bundle_help()
 {
