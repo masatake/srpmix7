@@ -1548,7 +1548,7 @@ x_prepare()
     done
 
     elt=.$p_status
-    echo 'unknown' > ${d}/${elt}
+    echo "${s_unknown}" > ${d}/${elt}
 
     return 0
 }
