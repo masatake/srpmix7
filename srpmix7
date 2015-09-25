@@ -124,6 +124,9 @@ ICMD_DESC=(
 
 EVAR[TMPDIR]="Directory where temorary directories are created"
 
+EVAR[UCTAGS]="Path for Universal ctags"
+EVAR_DEFAULT[UCTAGS]=${UCTAGS}
+
 typeset -A REQUIREMENTS
 REQUIREMENTS=(
 )
