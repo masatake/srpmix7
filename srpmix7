@@ -1471,9 +1471,7 @@ i_expand_run()
 	    fi
 	fi
 
-	if [[ "${debug}" == "yes" ]]; then
-	    :
-	else
+	if [[ "${debug}" != "yes" ]]; then
 	    rm -rf "$t"
 	fi
 
