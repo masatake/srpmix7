@@ -833,24 +833,22 @@ b_run_uctags_tags_common()
 
     local o
     local flag
-    local suffix
+    local tname
 
     if member -e "$@"; then
-	suffix=TAGS
+	tname=TAGS
     else
-	suffix=tags
+	tname=tags
     fi
 
-    if [[ "${subtarget}" == '.' ]]; then
-	o=$t/${suffix}
-    else
-	o=$t/${subtarget}.${suffix}
-    fi
+    o=$t/${tname}
+
     if [[ -e "$d/${subtarget}" ]]; then
 	if [[ -d "${d}/${subtarget}" ]]; then
 	    flag=-R
 	fi
 
+	rm -f ${o}
 	${UCTAGS} -o $o ${flag} "$@" $d/${subtarget} || throw Ctags
 	if member -e "$@"; then
 	    sed -i -e 's|^'"$d"'|../..|' $o || throw Sed
