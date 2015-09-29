@@ -678,15 +678,15 @@ l_run_dists()
     local v
     local p0
 
-    if ! mkdir -p "${root}/${P_dists}/${lname}"; then
-	-E- "Failed to create a directory: ${root}/${P_dists}/${lname}"
-    fi
-
     p=${target:h}
     v=${target:t}
-
     p0=$(name_prefix $p)
-    dist="${root}/${P_dists}/${lname}/$p"
+
+    if ! mkdir -p "${root}/${P_dists}/${lname}/${p0}"; then
+	-E- "Failed to create a directory: ${root}/${P_dists}/${lname}/${p0}"
+    fi
+
+    dist="${root}/${P_dists}/${lname}/${p0}/$p"
     local key="${prefix}-ref-dists-${lname}"
     : &&
 	{ [[ -e "${dist}" ]] || ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${dist}" } &&
