@@ -654,7 +654,7 @@ i_link_run()
 
     r=0
     for target in ${target[@]}; do
-	l_run_${ltype} "${lname}" "${root}" || r=2
+	l_run_${ltype} "${lname}" "${root}" "${target}" || r=2
     done
     return $r
 }
