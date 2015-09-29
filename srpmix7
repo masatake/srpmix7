@@ -673,6 +673,7 @@ l_run_dists()
     local target=$1
     shift
 
+    local dist
     local p
     local v
     local p0
@@ -685,9 +686,10 @@ l_run_dists()
     v=${target:t}
 
     p0=$(name_prefix $p)
+    dist="${root}/${P_dists}/${lname}/$p"
     local key="${prefix}-ref-dists-${lname}"
     : &&
-	ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${root}/${P_dists}/${lname}/$p" &&
+	{ [[ -e "${dist}" ]] || ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${dist}" } &&
 	setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
 }
 
@@ -702,6 +704,7 @@ l_run_alias()
     local target=$1
     shift
 
+    local dist
     local p
     local v
     local p0
@@ -710,9 +713,10 @@ l_run_alias()
     v=${target:t}
 
     p0=$(name_prefix $p)
+    dist="${root}/${P_sources}/${p0}/$p/"'^'"${lname}"
     local key="${prefix}-ref-alias-${lname}"
     : &&
-	ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${root}/${P_sources}/${p0}/$p/"'^'"${lname}" &&
+	{ [[ -e "${dist}" ]] || ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${dist}" } &&
 	setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
 }
 
