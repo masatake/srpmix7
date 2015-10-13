@@ -223,7 +223,7 @@ make_all_readable()
     local target=$1
 
     find $target -type f -exec chmod a+r '{}' '+'
-    find $target -type d -exec chmod a+x '{}' '+'
+    find $target -type d -exec chmod a+rx '{}' '+'
 }
 
 make_file_unwritable()
