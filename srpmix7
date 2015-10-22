@@ -1940,6 +1940,9 @@ i_expand_run()
 	    (npm)
 		expander_default=vanilla
 		;;
+	    (apts)
+		expander_default=deb
+		;;
 	    (file|wget)
 		case "$sloc" in
 		    (*.src.rpm)
@@ -2171,6 +2174,63 @@ x_prepare()
 #
 # STYPES
 #
+EXPAND_STYPE[apts]="a file downloaded by apt-get source"
+REQUIREMENTS[stype_apts]="apt-get"
+x_src_apts_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=apts --sloc=NAME ..."
+
+    echo "Example:"
+    echo "	srpmix7 expand --stype=apts --sloc=postfix --dtype=dir --dloc=/tmp deb"
+}
+
+x_src_apts_postcheck()
+{
+    local sloc=$1
+
+    if [[ ! -e "$sloc" ]]; then
+        -T- STransfer "$c: no such dentry: $sloc"
+    elif [[ ! -d "$sloc" ]]; then
+	-T- STransfer "$c: no such directory: $sloc"
+    elif [[ ! -r "$sloc" ]]; then
+        -T- STransfer "$c: dir unreadable: $sloc"
+    elif [[ ! -x "$sloc" ]]; then
+	-T- STransfer "$c: dir untraversable: $sloc"
+    fi
+
+    local -a dsc
+    dsc=( $sloc/*.dsc(N) )
+    if [[ ${#dsc} == 0 ]]; then
+	-T- STransfer "$c: no dsc file found in $sloc"
+    elif [[ ${#dsc} -gt 1 ]]; then
+	-T- STransfer "$c: more than one dsc files are found in $sloc"
+    elif [[ ! -e "${dsc[1]}" ]]; then
+	-T- STransfer "$c: no such dentry: ${dsc[1]}"
+    elif [[ ! -f "${dsc[1]}" ]]; then
+	-T- STransfer "$c: no such file: ${dsc[1]}"
+    elif [[ ! -r "${dsc[1]}" ]]; then
+	-T- STransfer "$c: file not readable: ${dsc[1]}"
+    fi
+
+    return 0
+}
+
+x_src_apts_transfer()
+{
+    local name=$1
+    local t=$2
+    local s
+
+    (
+	cd $t/$p_stmp;
+	apt-get source --download-only $name
+	exit $? ) > $t/$p_log/x_s_apt-source-transfer.log 2>&1
+    s=$?
+    echo $s > $t/$p_log/x_s_apt-source-transfer.status
+    return $s
+}
+
 EXPAND_STYPE[npm]="node package"
 REQUIREMENTS[stype_npm]="npm"
 x_src_npm_help()
@@ -2502,6 +2562,61 @@ x_dest_dir_commit()
 #
 # EXPANDERS
 #
+EXPANDER[deb]="debian source package"
+REQUIREMENTS[expander_deb]="dpkg-source"
+x_expand_deb_help()
+{
+    :
+}
+
+x_expand_deb_run()
+{
+    local stmp=$1
+    local t=$2
+    shift 2
+
+    local s
+
+    local a
+    local -a t_dsc
+    local -a t_archives
+
+    echo "$@"  > $t/$p_uname/x_deb_args
+
+    t_dsc=${$(echo $stmp/*.dsc)[1]}
+    t_archives=( $stmp/* )
+    dpkg-source -x ${t_dsc} $t/$p_xtmp/${p_pre_build} > "$t/$p_log/x_deb-dpkg-source-x.log" 2>&1
+    s=$?
+    echo $s > "$t/$p_log/x_deb-dpkg-source-x.status"
+
+    if [[ $s != 0 ]]; then
+	printf "%s (failed in dpkg-source -x for %s)\n" $s_incomplete ${t_dsc:t} > $t/.$p_status
+    else
+	mv $t/$p_xtmp/${p_pre_build}/* $t/${p_pre_build}
+	for a in ${t_archives[@]}; do
+	    if [[ "${a}" == "${t_dsc}" ]]; then
+		continue
+	    fi
+	    mv "$a" $t/$p_archives/
+	done
+
+	mv ${t_dsc} $t/$p_info/${t_dsc:t}
+
+	make_all_readable "$t/$p_archives"
+	make_file_unwritable "$t/$p_archives"
+    fi
+
+    make_all_readable "$t/$p_pre_build"
+    make_file_unwritable "$t/$p_pre_build"
+
+    return $s
+}
+
+x_expand_deb_check()
+{
+    :
+}
+
 EXPANDER[vanilla]="unarchivers frontend"
 REQUIREMENTS[expander_vanilla]="tar unzip gunzip bunzip2 unxz"
 x_expand_vanilla_help()
