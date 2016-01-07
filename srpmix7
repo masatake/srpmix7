@@ -508,7 +508,7 @@ i_link_help()
     local k
 
     echo "$SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR PACKAGE/VERSION--EXPANDER..."
-    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR  --stdin"
+    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --stdin"
     echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --iso"
     echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --comps"
     echo
@@ -2190,11 +2190,11 @@ x_src_apts_postcheck()
     local sloc=$1
 
     if [[ ! -e "$sloc" ]]; then
-        -T- STransfer "$c: no such dentry: $sloc"
+	-T- STransfer "$c: no such dentry: $sloc"
     elif [[ ! -d "$sloc" ]]; then
 	-T- STransfer "$c: no such directory: $sloc"
     elif [[ ! -r "$sloc" ]]; then
-        -T- STransfer "$c: dir unreadable: $sloc"
+	-T- STransfer "$c: dir unreadable: $sloc"
     elif [[ ! -x "$sloc" ]]; then
 	-T- STransfer "$c: dir untraversable: $sloc"
     fi
