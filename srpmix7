@@ -2829,6 +2829,9 @@ x_expand_srpm_clean_patch_backup_files()
     while IFS= read -r; do
 	if [[ "$REPLY" =~ '.*/patch[[:space:]]{1,}.*[[:space:]]{1,}--suffix[[:space:]]{1,}([^[:space:]]{1,}).*' ]]; then
 	    suffix=${REPLY[${mbegin[1]}, ${mend[1]}]}
+	elif [[ "$REPLY" =~ '.*/patch[[:space:]]{1,}.*[[:space:]]{1,}.*' ]]; then
+	    # No --suffix option is given: use default suffix.
+	    suffix=.orig
 	elif [[ "$REPLY" =~ '^patching file (.{1,})$' ]]; then
 	    patched_file=${REPLY[${mbegin[1]}, ${mend[1]}]}
 	    if [[ -z "${suffix}" ]]; then
