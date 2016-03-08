@@ -1370,7 +1370,7 @@ readonly -x r_failed_in_prep='f'
 PROGRESS_REPORT_CHAR[$r_failed_in_prep]="failed in %prep"
 
 readonly -x r_unknown='*'
-PROGRESS_REPORT_CHAR[$r_unknown]="unkonown"
+PROGRESS_REPORT_CHAR[$r_unknown]="unknown"
 
 progress_cradle=
 progress_source=
