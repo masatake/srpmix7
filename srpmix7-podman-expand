@@ -1,0 +1,34 @@
+#!/bin/sh -e
+DISTRO=$1
+PKG=$2
+SDIR=$3
+
+TMPDIR=$(mktemp -d --suffix=srpmix7-${DISTRO})
+STYPE=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${DISTRO} \
+	    | sed -n -e 's/SRPMIX_STYPE=\(.*\)/\1/p')
+EXPANDER=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${DISTRO} \
+	       | sed -n -e 's/SRPMIX_EXPANDER=\(.*\)/\1/p')
+
+mkdir -p ${SDIR}/sources
+echo -n "expanding $PKG of $DISTRO..."
+if podman run --rm --volume ${TMPDIR}:/out:z  srpmix7-$1 \
+	  srpmix7 expand --stype=${STYPE} --sloc=$PKG --dtype=dir --dloc=/out ${EXPANDER}; then
+    {
+	name=$(cat ${TMPDIR}/info/srpm_query_NAME)
+	n=${name:0:1}
+	d=${SDIR}/sources/$n/$name
+	mkdir -p $d
+	v=$(cat ${TMPDIR}/info/srpm_query_VERSION)
+	r=$(cat ${TMPDIR}/info/srpm_query_RELEASE)
+	dd=$d/${v}-${r}--${EXPANDER}
+	mv $TMPDIR $dd
+	chmod a+rx $dd
+	echo "successful: ${dd}"
+    }
+else
+    {
+	echo "failed: ${TMPDIR}"
+    } 1>&2 
+fi
+
+
