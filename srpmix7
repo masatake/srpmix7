@@ -2461,7 +2461,7 @@ x_src_yds_transfer()
     return $s
 }
 
-EXPAND_STYPE[yd]="a file downloaded by yumdownloader(no --source)"
+EXPAND_STYPE[yd]="a file downloaded by yumdownloader (no --source)"
 REQUIREMENTS[stype_yd]="yumdownloader"
 x_src_yd_help()
 {
