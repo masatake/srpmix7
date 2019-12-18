@@ -1685,10 +1685,11 @@ i_expand_help()
 {
     local k
 
-    =printf "%s\\\\\n" "$SELF expand [OPTIONS] EXPANDER [EXPANDER-OPTION]..."
+    =printf "%s\\\\\n" "$SELF expand [OPTIONS] "
     {
 	=printf "  %s \\\\\n" "--stype=STYPE --sloc=SLOCATION"
 	=printf "  %s \\\\\n" "--dtype=DTYPE --dloc=DLOCATION"
+	=printf "  EXPANDER [EXPANDER-OPTION]..."
 	echo
     } | indent
     echo "OPTIONS:"
