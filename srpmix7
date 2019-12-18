@@ -2465,7 +2465,7 @@ x_src_yd_help()
     echo "	srpmix7 expand --stype=yd --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp brpm"
 }
 
-x_src_yds_precheck()
+x_src_yd_precheck()
 {
     :
 }
