@@ -1695,6 +1695,7 @@ i_expand_help()
     echo "OPTIONS:"
     {
 	echo "	--action-when-error=abort|continue*"
+	echo "  --bundle"
 	echo "	--debug"
 	echo "	--quit-after=optparse|prepare"
 	echo "	--trace"
@@ -1759,6 +1760,8 @@ i_expand_run()
     local expander
     local expander_default=srpm
 
+    local bundle
+
     local checker
 
     local debug
@@ -1799,6 +1802,10 @@ i_expand_run()
 		    esac
 		fi
 		shift 2
+		;;
+	    (--bundle)
+		bundle=1
+		shift 1
 		;;
 	    (--debug|-d)
 		debug=yes
@@ -2083,7 +2090,9 @@ i_expand_run()
 	    if [[ "$s" == 0 || "$action_when_error" == continue ]]; then
 		if x_dest_${dtype}_transfer "$t" "$dloc"; then
 		    x_dest_${dtype}_commit "$dloc"
-		    attach_bundles $dloc
+		    if [[ -n "$bundle" ]]; then
+			attach_bundles $dloc
+		    fi
 		else
 		    delayed_emsg="$c: failed to transfer expanded data to $dtype:$dloc from $t"
 		    r=3
