@@ -2763,7 +2763,7 @@ x_expand_srpm_run()
     {
 	if [[ -z "${nodeps}" ]]; then
 	    {
-		yum-builddep ${srpm}
+		yum-builddep -y --skip-broken "${srpm}"
 		s=$?
 		echo $s > "$t/$p_log/x_srpm-builddep.status"
 	    } > "$t/$p_log/x_srpm-builddep.log" 2>&1
