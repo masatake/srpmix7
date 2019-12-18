@@ -1930,7 +1930,7 @@ i_expand_run()
     #
     if [[ -z "$expander" ]]; then
 	case "$stype" in
-	    (yds)
+	    (yds|dds)
 		expander_default=srpm
 		;;
 	    (yd)
@@ -2405,6 +2405,51 @@ x_src_git_transfer()
     return $s
 }
 
+EXPAND_STYPE[dds]="a file downloaded by dnf download --source"
+REQUIREMENTS[stype_dds]="dnf"
+x_src_dds_help()
+{
+    echo "Usage:"
+    echo "	... expand --stype=dds --sloc=\[REPO\]NAME ..."
+
+    echo "Example:"
+    echo "	srpmix7 expand --stype=dds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=dds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=dds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
+}
+
+x_src_dds_precheck()
+{
+    :
+}
+
+x_src_dds_postcheck()
+{
+    x_src_file_postcheck $1
+}
+
+x_src_dds_transfer()
+{
+    local sloc=$1
+    local t=$2
+    local pname
+    local repo
+    local s
+
+    case "$sloc" in
+	(\[*\]*)
+	    pname=${sloc#\[*\]}
+	    repo=${${sloc%\]*}[2,-1]}
+	    dnf download --source --downloaddir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
+	    ;;
+	(*)
+	    dnf download --source --downloaddir ${t}/$p_stmp $sloc
+	    ;;
+    esac > $t/$p_log/x_s_dds-transfer.log 2>&1
+    s=$?
+    echo $s > $t/$p_log/x_s_dds-transfer.status
+    return $s
+}
 
 EXPAND_STYPE[yds]="a file downloaded by yumdownloader --source"
 REQUIREMENTS[stype_yds]="yumdownloader"
