@@ -2722,7 +2722,7 @@ x_expand_srpm_name_version()
 x_expand_srpm_help()
 {
     echo "Usage:"
-    echo "	... expand ... srpm [--deps]"
+    echo "	... expand ... srpm [--deps] [--nobuilddep]"
 }
 
 x_expand_srpm_run()
@@ -2732,10 +2732,16 @@ x_expand_srpm_run()
     shift 2
 
     local nodeps=--nodeps
+    local nobuilddep=
+
     while [[ $# -gt 0 ]]; do
 	case $1 in
 	    (--deps)
 		nodeps=
+		shift 1
+		;;
+	    (--nobuilddep)
+		nobuilddep=1
 		shift 1
 		;;
 	    (*)
@@ -2761,10 +2767,18 @@ x_expand_srpm_run()
     done
 
     {
-	if [[ -z "${nodeps}" ]]; then
+	if [[ -z "${nobuilddep}" ]]; then
 	    {
-		yum-builddep -y --skip-broken "${srpm}"
-		s=$?
+		if rpm -q dnf-plugins-core > /dev/null 2>&1; then
+		    dnf builddep -y --allowerasing --skip-broken --nobest "${srpm}"
+		    s=$?
+		elif rpm -q yum-utils > /dev/null 2>&1; then
+		    yum-builddep -y --skip-broken "${srpm}"
+		    s=$?
+		else
+		    echo "cannot find neither dnf-builddep nor yum-builddep"
+		    s=1
+		fi
 		echo $s > "$t/$p_log/x_srpm-builddep.status"
 	    } > "$t/$p_log/x_srpm-builddep.log" 2>&1
 	    if [[ $s != 0 ]]; then
