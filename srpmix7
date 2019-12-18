@@ -2730,7 +2730,8 @@ x_expand_srpm_name_version()
 
 x_expand_srpm_help()
 {
-    :
+    echo "Usage:"
+    echo "	... expand ... srpm [--deps]"
 }
 
 x_expand_srpm_run()
@@ -2738,6 +2739,19 @@ x_expand_srpm_run()
     local srpm=$1
     local t=$2
     shift 2
+
+    local nodeps=--nodeps
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--deps)
+		nodeps=
+		shift 1
+		;;
+	    (*)
+		-E- "unexpectd argument for srpm expander: $1"
+		;;
+	esac
+    done
 
     local tag
     local -a t_spec
@@ -2756,6 +2770,17 @@ x_expand_srpm_run()
     done
 
     {
+	if [[ -z "${nodeps}" ]]; then
+	    {
+		yum-builddep ${srpm}
+		s=$?
+		echo $s > "$t/$p_log/x_srpm-builddep.status"
+	    } > "$t/$p_log/x_srpm-builddep.log" 2>&1
+	    if [[ $s != 0 ]]; then
+		throw BUILDDEP
+	    fi
+	fi
+
 	rpm --nosignature --define="_topdir $t/$p_xtmp" -ivh "${srpm}" \
 	    > "$t/$p_log/x_srpm-rpm-ivh.log" 2>&1
 	s=$?
@@ -2776,7 +2801,7 @@ x_expand_srpm_run()
 	    throw WRONG_SPEC_NUM
 	fi
 
-	rpmbuild --define="_topdir $t/$p_xtmp" --nodeps --target=x86_64 -bp ${t_spec[1]} \
+	rpmbuild --define="_topdir $t/$p_xtmp" ${nodeps} --target=x86_64 -bp ${t_spec[1]} \
 		 > "$t/$p_log/x_srpm-rpmbuild-bp.log" 2>&1 \
 		 < <(yes "")
 	s=$?
@@ -2786,7 +2811,9 @@ x_expand_srpm_run()
 	fi
     } always {
 
-	if catch RPM_I; then
+	if catch BUILDDEP; then
+	    =printf "%s (failed in resolve builddep for %s)\n" $s_incomplete ${srpm:t} > $t/.$p_status
+	elif catch RPM_I; then
 	    =printf "%s (failed in rpm -ivh %s)\n" $s_incomplete ${srpm:t} > $t/.$p_status
 	elif catch WRONG_SPEC_NUM; then
 	    =printf "%s (wrong number of spec file(s): ${#t_spec})\n" $s_incomplete > $t/.$p_status
