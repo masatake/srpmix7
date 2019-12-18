@@ -1,0 +1,40 @@
+#!/bin/sh
+DISTRO=$1
+DOCKERFILES_DIR=./dockerfiles
+
+list_distro ()
+{
+    for x in ${DOCKERFILES_DIR}/*.dockerfile; do
+	printf "$1%s\n" $(basename $x .dockerfile)
+    done
+}
+
+print_usage ()
+{
+    echo "Usage: $0 DISTRO"
+    echo "Available DISTRO are:"
+    list_distro "	"
+    exit $1
+}
+
+if [ -z "${DISTRO}" ]; then
+    echo "No DISTRO name is given"
+    print_usage 1
+fi 1>&2
+
+case "${DISTRO}" in
+    -h|--help|-?|help)
+	print_usage 0
+	;;
+    -l|--list|list)
+	list_distro
+	exit 0
+	;;
+esac
+
+if ! [ -f ${DOCKERFILES_DIR}/${DISTRO}.dockerfile ]; then
+   echo "No such distribution: ${DISTRO}"
+    print_usage 1
+fi 1>&2
+
+podman build -f ${DOCKERFILES_DIR}/${DISTRO}.dockerfile -t srpmix7-${DISTRO} .
