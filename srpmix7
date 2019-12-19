@@ -2811,26 +2811,25 @@ x_expand_srpm_run()
 	    > $t/$p_info/srpm_query_${tag//\//_/}
     done
 
-    {
-	if [[ -z "${nobuilddep}" ]]; then
-	    {
-		if rpm -q dnf-plugins-core > /dev/null 2>&1; then
-		    dnf builddep -y --allowerasing --skip-broken --nobest "${srpm}"
-		    s=$?
-		elif rpm -q yum-utils > /dev/null 2>&1; then
-		    yum-builddep -y --skip-broken "${srpm}"
-		    s=$?
-		else
-		    echo "cannot find neither dnf-builddep nor yum-builddep"
-		    s=1
-		fi
-		echo $s > "$t/$p_log/x_srpm-builddep.status"
-	    } > "$t/$p_log/x_srpm-builddep.log" 2>&1
-	    if [[ $s != 0 ]]; then
-		throw BUILDDEP
+    if [[ -z "${nobuilddep}" ]]; then
+	set +e
+	{
+	    if rpm -q dnf-plugins-core > /dev/null 2>&1; then
+		dnf builddep -y --allowerasing --skip-broken --nobest "${srpm}"
+		s=$?
+	    elif rpm -q yum-utils > /dev/null 2>&1; then
+		yum-builddep -y --skip-broken "${srpm}"
+		s=$?
+	    else
+		echo "cannot find neither dnf-builddep nor yum-builddep"
+		s=1
 	    fi
-	fi
+	    echo $s > "$t/$p_log/x_srpm-builddep.status"
+	} > "$t/$p_log/x_srpm-builddep.log" 2>&1
+	set -e
+    fi
 
+    {
 	rpm --nosignature --define="_topdir $t/$p_xtmp" -ivh "${srpm}" \
 	    > "$t/$p_log/x_srpm-rpm-ivh.log" 2>&1
 	s=$?
@@ -2860,10 +2859,7 @@ x_expand_srpm_run()
 	    throw RPMBUILD_BP
 	fi
     } always {
-
-	if catch BUILDDEP; then
-	    =printf "%s (failed in resolve builddep for %s)\n" $s_incomplete ${srpm:t} > $t/.$p_status
-	elif catch RPM_I; then
+	if catch RPM_I; then
 	    =printf "%s (failed in rpm -ivh %s)\n" $s_incomplete ${srpm:t} > $t/.$p_status
 	elif catch WRONG_SPEC_NUM; then
 	    =printf "%s (wrong number of spec file(s): ${#t_spec})\n" $s_incomplete > $t/.$p_status
