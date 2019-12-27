@@ -2274,7 +2274,7 @@ x_src_file_help()
     echo "	... expand --stype=file --sloc=FILE ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=file --stype=/tmp/coreutils-8.22-11.el7.src.rpm --dtype=dir --dloc=/tmp srpm"
+    echo "	srpmix7 expand --stype=file --sloc=/tmp/coreutils-8.22-11.el7.src.rpm --dtype=dir --dloc=/tmp srpm"
 }
 x_src_file_precheck()
 {
