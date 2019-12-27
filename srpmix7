@@ -1659,6 +1659,153 @@ d_dir_deploy()
 CRADLE_TYPE[yum]="yumrepo (not implemented yet)"
 REQUIREMENTS[cradle_yumrepo]="yum repoquery"
 
+#
+#
+# Subcommand: podman-srpm-expand
+#
+#
+ICMD+=podman-srpm-expand
+ICMD_DESC[podman-srpm-expand]="expand srpm with podman"
+
+i_podman-srpm-expand_help()
+{
+    =printf "%s\\\\\n" "$SELF podman-srpm-expand [OPTIONS] DISTRO SRPM DISTDIR "
+    echo "OPTIONS:"
+    {
+	echo "	--dont-overwrite|-a"
+    }
+}
+
+i_podman-srpm-expand_run()
+{
+    local c=${${0#i_}%_run}
+    local dont_overwrite=0
+
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (--dont-overwrite|-a)
+		dont_overwrite=1
+		shift 1
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    if [[ $# -ne 3 ]]; then
+	-E- "$c: three arguments are expected"
+    fi
+
+    local distro=$1
+    local pkg=$2
+    local ddir=$3
+
+    if ! podman_has_image srpmix7-${distro}; then
+	-E%- "no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
+    fi
+
+    local stype=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${distro} \
+		      | sed -n -e 's/SRPMIX_STYPE=\(.*\)/\1/p')
+    if [[ -z "$stype" ]]; then
+	-E%- "no stype (SRPMIX_STYPE) in image %s" "srpmix7-${distro}"
+    fi
+
+    local expander=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${distro} \
+			 | sed -n -e 's/SRPMIX_EXPANDER=\(.*\)/\1/p')
+    if [[ -z "$expander" ]]; then
+	-E%- "no expander (SRPMIX_EXPANDER) in image %s" "srpmix7-${distro}"
+    fi
+
+    mkdir -p ${ddir}/sources
+    echo -n "expanding $pkg of $distro..."
+    local tmpdir=$(mktemp -d --suffix=srpmix7-$c-${distro})
+
+    set +e
+    {
+	podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
+	       srpmix7 expand --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
+
+	podman_publish ${dont_overwrite} ${ddir} ${tmpdir} ${expander}
+	local s=$?
+    }
+    set -e
+
+    case $s in
+	0|1)
+	    return $s
+	    ;;
+	2)
+	    echo "failed: ${tmpdir}"
+	    return 2
+	    ;;
+	*)
+	    echo "unknown: ${tmpdir}"
+	    return $s
+    esac
+}
+
+podman_has_image()
+{
+    podman image inspect "$1" > /dev/null 2>&1
+}
+
+podman_publish()
+{
+    local dont_overwrite=$1
+    local s=$2
+    local t=$3
+    local ex=$4
+    local msg
+    local r
+    if [[ -f ${t}/SUCCESSFUL ]]; then
+	msg=successful
+	r=0
+    elif [[ -f ${t}/SUCCESSFUL ]]; then
+	msg=incomplete
+	r=1
+    else
+	return 2
+    fi
+
+    local name=$(cat ${t}/info/srpm_query_NAME)
+    local n=${name:0:1}
+    local d=${s}/sources/$n/$name
+
+    local ver=$(cat ${t}/info/srpm_query_VERSION)
+    local rel=$(cat ${t}/info/srpm_query_RELEASE)
+    local dd=$d/${ver}-${rel}--${ex}
+
+    if [[ -d $dd ]]; then
+	if [[ $dont_overwrite -eq 1 ]]; then
+	    echo "existed: ${dd}"
+	    rm -rf $t
+	    return 2
+	else
+	    rm -rf "${dd}"
+	fi
+    fi
+
+    mkdir -p $d
+    mv $t $dd
+    chmod a+rx $dd
+    echo "${msg}: ${dd}"
+    return $r
+}
+
 
 #
 #
