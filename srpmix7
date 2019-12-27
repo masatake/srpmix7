@@ -22,6 +22,7 @@
 #
 readonly prefix=srpmix7
 readonly PREFIX=${(U)prefix}
+readonly SELF_FULL=$0
 readonly SELF=$0:t
 readonly c_version=7.0.0
 readonly UCTAGS=${UCTAGS:-~/bin/u-ctags}
@@ -1658,6 +1659,173 @@ d_dir_deploy()
 
 CRADLE_TYPE[yum]="yumrepo (not implemented yet)"
 REQUIREMENTS[cradle_yumrepo]="yum repoquery"
+
+#
+#
+# Subcommand: podman-image-build
+#
+#
+typeset -A DOCKER_FILES
+DOCKER_FILES[centos8]="
+FROM docker.io/library/centos:8
+RUN set -x && \
+    dnf -y install zsh rpm-build yum-utils
+RUN set -x && \
+    dnf -y install gcc annobin
+RUN dnf config-manager --set-enabled PowerTools
+
+ENV SRPMIX_STYPE dds
+ENV SRPMIX_EXPANDER srpm
+
+COPY ./srpmix7 /usr/bin/srpmix7
+"
+
+DOCKER_FILES[centos7]="
+FROM docker.io/library/centos:7
+RUN set -x && \
+    yum -y install zsh rpm-build yum-utils
+
+RUN yum -y install centos-release-scl-rh
+
+ENV SRPMIX_STYPE yds
+ENV SRPMIX_EXPANDER srpm
+
+RUN yum -y install cpp
+
+COPY ./srpmix7 /usr/bin/srpmix7
+"
+
+DOCKER_FILES[fedora31]="
+FROM docker.io/library/fedora:31
+RUN set -x && \
+    dnf -y install zsh rpm-build dnf-plugins-core
+RUN set -x && \
+    dnf -y install gcc annobin
+
+ENV SRPMIX_STYPE dds
+ENV SRPMIX_EXPANDER srpm
+
+COPY ./srpmix7 /usr/bin/srpmix7
+"
+
+DOCKER_FILES[rhel8]="
+FROM registry.redhat.io/ubi8/ubi
+RUN set -x && \
+    dnf -y install zsh rpm-build yum-utils
+RUN set -x && \
+    dnf -y install gcc annobin
+RUN set -x && \
+    dnf config-manager --set-enabled rhel-8-for-x86_64-appstream-rpms && \
+    dnf config-manager --set-enabled codeready-builder-for-rhel-8-x86_64-rpms
+
+ENV SRPMIX_STYPE dds
+ENV SRPMIX_EXPANDER srpm
+
+COPY ./srpmix7 /usr/bin/srpmix7
+"
+
+DOCKER_FILES[rhel7]="
+FROM registry.redhat.io/ubi7/ubi
+RUN set -x && \
+    yum -y install zsh rpm-build yum-utils
+RUN set -x && \
+    yum -y install gcc annobin
+RUN set -x && \
+    yum repolist && \
+    yum-config-manager --enable rhel-7-server-optional-rpms && \
+    yum-config-manager --enable rhel-7-server-extras-rpms
+
+ENV SRPMIX_STYPE yds
+ENV SRPMIX_EXPANDER srpm
+
+COPY ./srpmix7 /usr/bin/srpmix7
+"
+
+ICMD+=podman-image-build
+ICMD_DESC[podman-image-build]="build container image for expanding source code"
+
+i_podman-image-build_help()
+{
+    local k
+    =printf "%s\\\\\n" "$SELF podman-image-build DISTRO"
+    =printf "%s\\\\\n" "$SELF podman-image-build [OPTIONS]"
+    echo "OPTIONS:"
+    {
+	echo "	--dont-overwrite|-a"
+	echo "	--list-buildable|-l"
+    }
+
+    echo "DISTRO:"
+    for k in ${(k)DOCKER_FILES}; do
+	=printf "%-10s	%s\n" "$k" | indent
+    done
+}
+
+i_podman-image-build_run()
+{
+    local k
+    local c=${${0#i_}%_run}
+    local dont_overwrite=0
+
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (--dont-overwrite|-a)
+		dont_overwrite=1
+		shift 1
+		;;
+	    (--list-buildable|-l)
+		for k in ${(k)DOCKER_FILES}; do
+		    echo $k
+		done
+		return 0
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    if [[ $# -ne 1 ]]; then
+	-E- "$c: need name of distro"
+    fi
+
+    local distro=$1
+    if podman_has_image srpmix7-${distro} && [[ "${dont_overwrite}" -eq 1 ]]; then
+	return 0
+    fi
+
+    if [[ -z "${DOCKER_FILES[$distro]}" ]]; then
+	-E%- "$c: no buildable distro named %s" "$distro"
+    fi
+
+    local tmpdir=$(mktemp -d --suffix=srpmix7-$c-${distro})
+    if ! [[ "$tmpdir" =~ '/tmp/.*' ]]; then
+	-E- "$c: unexpected temorary file name: $tmpdir"
+    fi
+
+    echo "${DOCKER_FILES[$distro]}" > $tmpdir/${distro}.dockerfile
+    cp $SELF_FULL $tmpdir/srpmix7
+    (
+	cd $tmpdir
+	podman build -f $tmpdir/${distro}.dockerfile -t srpmix7-${distro} . \
+	    && rm -rf "$tmpdir"
+    )
+
+    return $?
+}
 
 #
 #
