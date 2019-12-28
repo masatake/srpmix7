@@ -142,6 +142,10 @@ typeset -A LTYPES
 LTYPES=(
 )
 
+typeset -A USE_HOOK
+USE_HOOK=(
+)
+
 #
 #
 # Utilities
@@ -300,6 +304,48 @@ name_prefix()
 {
     echo -n ${1[1]}
 }
+
+use_hook_p()
+{
+    local k=$1
+    if [[ -z "${USE_HOOK[$k]}" ]]; then
+	return 1
+    else
+	return 0
+    fi
+}
+
+run_hook()
+{
+    local hookdir=$1
+    local type=$2
+    local hook=$3
+    shift 3
+
+    local cmd="${hookdir}/${type}/${hook}"
+    if [[ -x "$cmd" ]]; then
+	"$cmd" "$@"
+    fi
+}
+
+list_hooks()
+{
+    local t=$1
+    local i=$2
+    local h
+    for h in ${USE_HOOK[$t]}; do
+	echo "$i$h"
+    done
+}
+
+print_available_hooks()
+{
+    local t=$1
+
+    echo "Available hooks in $t:"
+    list_hooks "$t" "	"
+}
+
 
 #
 #
@@ -1665,8 +1711,17 @@ REQUIREMENTS[cradle_yumrepo]="yum repoquery"
 # Subcommand: podman-image-build
 #
 #
-typeset -A DOCKER_FILES
-DOCKER_FILES[centos8]="
+typeset -A DISTRO_stype
+typeset -A DISTRO_expander
+typeset -A DISTRO_docker_files
+typeset -A DISTRO_hook_scripts
+
+#
+# ceontos8
+#
+DISTRO_stype[centos8]=dds
+DISTRO_expander[centos8]=srpm
+DISTRO_docker_files[centos8]="
 FROM docker.io/library/centos:8
 RUN set -x && \
     dnf -y install zsh rpm-build yum-utils
@@ -1674,41 +1729,103 @@ RUN set -x && \
     dnf -y install gcc annobin
 RUN dnf config-manager --set-enabled PowerTools
 
+RUN dnf repolist --all
+RUN dnf makecache
+
 ENV SRPMIX_STYPE dds
 ENV SRPMIX_EXPANDER srpm
 
+COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
 "
 
-DOCKER_FILES[centos7]="
+#
+# centos7
+#
+DISTRO_stype[centos7]=yds
+DISTRO_expander[centos7]=srpm
+DISTRO_docker_files[centos7]="
 FROM docker.io/library/centos:7
 RUN set -x && \
     yum -y install zsh rpm-build yum-utils
 
 RUN yum -y install centos-release-scl-rh
 
+RUN yum repolist all
+RUN yum makecache
+
 ENV SRPMIX_STYPE yds
 ENV SRPMIX_EXPANDER srpm
 
 RUN yum -y install cpp
 
+COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
 "
 
-DOCKER_FILES[fedora31]="
+#
+# fedora31
+#
+DISTRO_stype[fedora31]=dds
+DISTRO_expander[fedora31]=srpm
+DISTRO_docker_files[fedora31]="
 FROM docker.io/library/fedora:31
 RUN set -x && \
     dnf -y install zsh rpm-build dnf-plugins-core
 RUN set -x && \
     dnf -y install gcc annobin
 
+RUN dnf repolist --all
+RUN dnf -y makecache
+
 ENV SRPMIX_STYPE dds
 ENV SRPMIX_EXPANDER srpm
 
+COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
 "
 
-DOCKER_FILES[rhel8]="
+DISTRO_hook_scripts[fedora31/expander_srpm/before-builddep]='
+#!/bin/zsh
+typeset -a REPOS
+REPOS=(
+fedora
+fedora-cisco-openh264
+fedora-modular
+updates
+updates-modular
+updates-testing
+updates-testing-modular
+)
+dnf config-manager --set-disabled ''*''
+for r in "${REPOS[@]}"; do
+    dnf config-manager --set-enabled $r
+done
+'
+
+DISTRO_hook_scripts[fedora31/stype_dds/before-download]='
+#!/bin/zsh
+typeset -a REPOS
+REPOS=(
+fedora-modular-source
+fedora-source
+updates-modular-source
+updates-source
+updates-testing-modular-source
+updates-testing-source
+)
+dnf config-manager --set-disabled ''*''
+for r in "${REPOS[@]}"; do
+    dnf config-manager --set-enabled $r
+done
+'
+
+#
+# rhel8
+#
+DISTRO_stype[rhel8]=dds
+DISTRO_expander[rhel8]=srpm
+DISTRO_docker_files[rhel8]="
 FROM registry.redhat.io/ubi8/ubi
 RUN set -x && \
     dnf -y install zsh rpm-build yum-utils
@@ -1718,26 +1835,38 @@ RUN set -x && \
     dnf config-manager --set-enabled rhel-8-for-x86_64-appstream-rpms && \
     dnf config-manager --set-enabled codeready-builder-for-rhel-8-x86_64-rpms
 
+RUN dnf repolist --all
+RUN dnf makecache
+
 ENV SRPMIX_STYPE dds
 ENV SRPMIX_EXPANDER srpm
 
+COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
 "
 
-DOCKER_FILES[rhel7]="
+#
+# rhel7
+#
+DISTRO_stype[rhel7]=yds
+DISTRO_expander[rhel7]=srpm
+DISTRO_docker_files[rhel7]="
 FROM registry.redhat.io/ubi7/ubi
 RUN set -x && \
     yum -y install zsh rpm-build yum-utils
 RUN set -x && \
     yum -y install gcc annobin
 RUN set -x && \
-    yum repolist && \
+    yum repolist all && \
     yum-config-manager --enable rhel-7-server-optional-rpms && \
     yum-config-manager --enable rhel-7-server-extras-rpms
+
+RUN yum makecache
 
 ENV SRPMIX_STYPE yds
 ENV SRPMIX_EXPANDER srpm
 
+COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
 "
 
@@ -1756,7 +1885,7 @@ i_podman-image-build_help()
     }
 
     echo "DISTRO:"
-    for k in ${(k)DOCKER_FILES}; do
+    for k in ${(k)DISTRO_docker_files}; do
 	=printf "%-10s	%s\n" "$k" | indent
     done
 }
@@ -1784,7 +1913,7 @@ i_podman-image-build_run()
 		shift 1
 		;;
 	    (--list-buildable|-l)
-		for k in ${(k)DOCKER_FILES}; do
+		for k in ${(k)DISTRO_docker_files}; do
 		    echo $k
 		done
 		return 0
@@ -1807,8 +1936,18 @@ i_podman-image-build_run()
 	return 0
     fi
 
-    if [[ -z "${DOCKER_FILES[$distro]}" ]]; then
+    if [[ -z "${DISTRO_docker_files[$distro]}" ]]; then
 	-E%- "$c: no buildable distro named %s" "$distro"
+    fi
+
+    local stype=${DISTRO_stype[$distro]}
+    if [[ -z "${stype}" ]]; then
+	-E%- "$c: no stype given for distro %s" "$distro"
+    fi
+
+    local expander=${DISTRO_expander[$distro]}
+    if [[ -z "${expander}" ]]; then
+	-E%- "$c: no expander given for distro %s" "$distro"
     fi
 
     local tmpdir=$(mktemp -d --suffix=srpmix7-$c-${distro})
@@ -1816,8 +1955,28 @@ i_podman-image-build_run()
 	-E- "$c: unexpected temorary file name: $tmpdir"
     fi
 
-    echo "${DOCKER_FILES[$distro]}" > $tmpdir/${distro}.dockerfile
+    echo "${DISTRO_docker_files[$distro]}" > $tmpdir/${distro}.dockerfile
     cp $SELF_FULL $tmpdir/srpmix7
+
+    mkdir $tmpdir/hooks
+    mkdir $tmpdir/hooks/{stype_$stype,expander_$expander}
+
+    local hook
+    local hook_file
+    for k in ${(k)DISTRO_hook_scripts}; do
+	if [[ "$k" =~ "^${distro}/stype_${stype}/([-a-zA-Z_0-9]+)" ]]; then
+	    hook=${match[1]}
+	    hook_file=$tmpdir/hooks/stype_$stype/$hook
+	elif [[ "$k" =~ "^${distro}/expander_${expander}/([-a-zA-Z_0-9]+)" ]]; then
+	    hook=${match[1]}
+	    hook_file=$tmpdir/hooks/expander_$expander/$hook
+	else
+	    continue
+	fi
+	echo "${DISTRO_hook_scripts[$k]}" > $hook_file
+	chmod a+x $hook_file
+    done
+
     (
 	cd $tmpdir
 	podman build -f $tmpdir/${distro}.dockerfile -t srpmix7-${distro} . \
@@ -1882,6 +2041,16 @@ i_podman-srpm-expand_run()
     local pkg=$2
     local ddir=$3
 
+    if [[ -z "$distro" ]]; then
+	-E- "DISTRO is not given in command line"
+    fi
+    if [[ -z "$pkg" ]]; then
+	-E- "SRPM is not given in command line"
+    fi
+    if [[ -z "$ddir" ]]; then
+	-E- "DESTDIR is not given in command line"
+    fi
+
     if ! podman_has_image srpmix7-${distro}; then
 	-E%- "no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
     fi
@@ -1905,7 +2074,7 @@ i_podman-srpm-expand_run()
     set +e
     {
 	podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
-	       srpmix7 expand --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
+	       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
 
 	podman_publish ${dont_overwrite} ${ddir} ${tmpdir} ${expander}
 	local s=$?
@@ -2008,6 +2177,7 @@ i_expand_help()
 	echo "	--help-expander=EXPANDER"
 	echo "	--help-stype=STYPE"
 	echo "	--help-dtype=DTYPE"
+	echo "  --hookdir=DIR"
     }
     echo "STYPE:"
     for k in ${(k)EXPAND_STYPE}; do
@@ -2069,6 +2239,9 @@ i_expand_run()
     local bundle
 
     local checker
+
+    local hookdir
+    local hookarg
 
     local debug
     local quit_after
@@ -2172,6 +2345,17 @@ i_expand_run()
 		    -E- "$c: sloc is already given as ${sloc}: ${opt}=$2"
 		else
 		    sloc=$2
+		    shift 2
+		fi
+		;;
+	    (--hookdir)
+		opt=$1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: value for $opt is not given"
+		elif ! [[ -d "$2" ]]; then
+		    -E- "$c: hookdir doesn't exist: $2"
+		else
+		    hookdir=$2
 		    shift 2
 		fi
 		;;
@@ -2328,7 +2512,11 @@ i_expand_run()
 	fi
 
 	set +e
-	if x_src_${stype}_transfer ${sloc} $t; then
+	hookarg=
+	if x_use_stype_hook_p ${stype}; then
+	    hookarg="--hookdir=$hookdir"
+	fi
+	if x_src_${stype}_transfer ${sloc} $t $hookarg; then
 	    slocs_local=( $t/$p_stmp/*(N) )
 	    echo "${slocs_local[@]}" > $t/$p_uname/x_slocs_local || throw Preparation
 	    if [[ $#slocs_local == 0 ]]; then
@@ -2341,16 +2529,20 @@ i_expand_run()
 
 
 	set +e
+	hookarg=
+	if x_use_expander_hook_p ${expander}; then
+	    hookarg="--hookdir=$hookdir"
+	fi
 	if [[ $#slocs_local == 1 ]]; then
 	    # Passing a file under the temporary directory.
 	    checker="x_src_${stype}_postcheck"
 	    if is_available $checker; then
 		$checker "${slocs_local[1]}"
 	    fi
-	    x_expand_${expander}_run "${slocs_local[1]}" "$t" "$@"
+	    x_expand_${expander}_run "${slocs_local[1]}" "$t" $hookarg "$@"
 	else
 	    # Passing the temporary directory
-	    x_expand_${expander}_run  $t/$p_stmp "$t" "$@"
+	    x_expand_${expander}_run  $t/$p_stmp "$t" $hookarg "$@"
 	fi
 	s=$?
 	set -e
@@ -2464,6 +2656,44 @@ x_help_dtype()
     for c in ${REQUIREMENTS[dtype_${dtype}]}; do
 	echo "	$c"
     done
+}
+
+x_use_stype_hook_p()
+{
+    use_hook_p stype_$1
+}
+
+x_use_expander_hook_p()
+{
+    use_hook_p expander_$1
+}
+
+x_run_hook_maybe()
+{
+    local type_prefix=$1
+    shift 1
+
+    local hookdir=$1
+
+    if [[ -z "$hookdir" ]]; then
+	return 0
+    fi
+
+    local type="${type_prefix}_$2"
+    local hook=$3
+    shift 3
+
+    run_hook "$hookdir" "$type" "$hook" "$@"
+}
+
+x_run_stype_hook_maybe()
+{
+    x_run_hook_maybe stype "$@"
+}
+
+x_run_expander_hook_maybe()
+{
+    x_run_hook_maybe expander "$@"
 }
 
 #
@@ -2722,6 +2952,8 @@ x_src_git_transfer()
 
 EXPAND_STYPE[dds]="a file downloaded by dnf download --source"
 REQUIREMENTS[stype_dds]="dnf"
+USE_HOOK[stype_dds]="before-download after-download"
+
 x_src_dds_help()
 {
     echo "Usage:"
@@ -2731,6 +2963,8 @@ x_src_dds_help()
     echo "	srpmix7 expand --stype=dds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
     echo "	srpmix7 expand --stype=dds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
     echo "	srpmix7 expand --stype=dds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
+
+    print_available_hooks stype_dds
 }
 
 x_src_dds_precheck()
@@ -2747,27 +2981,52 @@ x_src_dds_transfer()
 {
     local sloc=$1
     local t=$2
+    shift 2
+
     local pname
     local repo
     local s
 
-    case "$sloc" in
-	(\[*\]*)
-	    pname=${sloc#\[*\]}
-	    repo=${${sloc%\]*}[2,-1]}
-	    dnf download --source --downloaddir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
-	    ;;
-	(*)
-	    dnf download --source --downloaddir ${t}/$p_stmp $sloc
-	    ;;
-    esac > $t/$p_log/x_s_dds-transfer.log 2>&1
-    s=$?
+    local hookdir
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--hookdir=*)
+		hookdir=${1#*=}
+		shift 1
+		;;
+	    (*)
+		-E- "unexpectd argument for srpm expander: $1"
+		;;
+	esac
+    done
+
+    {
+	x_run_stype_hook_maybe "$hookdir" dds before-download
+	case "$sloc" in
+	    (\[*\]*)
+		pname=${sloc#\[*\]}
+		repo=${${sloc%\]*}[2,-1]}
+		if [[ -z "$hookdir" ]]; then
+		    dnf download --source --downloaddir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
+		else
+		    dnf download --source --downloaddir ${t}/$p_stmp --enablerepo "$repo" $pname
+		fi
+		s=$?
+		;;
+	    (*)
+		dnf download --source --downloaddir ${t}/$p_stmp $sloc
+		s=$?
+		;;
+	esac
+	x_run_stype_hook_maybe "$hookdir" dds after-download
+    } > $t/$p_log/x_s_dds-transfer.log 2>&1
     echo $s > $t/$p_log/x_s_dds-transfer.status
     return $s
 }
 
 EXPAND_STYPE[yds]="a file downloaded by yumdownloader --source"
 REQUIREMENTS[stype_yds]="yumdownloader"
+USE_HOOK[stype_yds]="before-download after-download"
 x_src_yds_help()
 {
     echo "Usage:"
@@ -2777,6 +3036,8 @@ x_src_yds_help()
     echo "	srpmix7 expand --stype=yds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
     echo "	srpmix7 expand --stype=yds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
     echo "	srpmix7 expand --stype=yds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
+
+    print_available_hooks stype_yds
 }
 
 x_src_yds_precheck()
@@ -2793,21 +3054,45 @@ x_src_yds_transfer()
 {
     local sloc=$1
     local t=$2
+    shift 2
+
     local pname
     local repo
     local s
 
-    case "$sloc" in
-	(\[*\]*)
-	    pname=${sloc#\[*\]}
-	    repo=${${sloc%\]*}[2,-1]}
-	    yumdownloader --source --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
-	    ;;
-	(*)
-	    yumdownloader --source --destdir ${t}/$p_stmp $sloc
-	    ;;
-    esac > $t/$p_log/x_s_yds-transfer.log 2>&1
-    s=$?
+    local hookdir
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--hookdir=*)
+		hookdir=${1#*=}
+		shift 1
+		;;
+	    (*)
+		-E- "unexpectd argument for srpm expander: $1"
+		;;
+	esac
+    done
+
+    {
+	x_run_stype_hook_maybe "$hookdir" yds before-download
+	case "$sloc" in
+	    (\[*\]*)
+		pname=${sloc#\[*\]}
+		repo=${${sloc%\]*}[2,-1]}
+		if [[ -z "$hookdir" ]]; then
+		    yumdownloader --source --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
+		else
+		    yumdownloader --source --destdir ${t}/$p_stmp --enablerepo "$repo" $pname
+		fi
+		s=$?
+		;;
+	    (*)
+		yumdownloader --source --destdir ${t}/$p_stmp $sloc
+		s=$?
+		;;
+	esac
+	x_run_stype_hook_maybe "$hookdir" yds after-download
+    } > $t/$p_log/x_s_yds-transfer.log 2>&1
     echo $s > $t/$p_log/x_s_yds-transfer.status
     return $s
 }
@@ -3068,6 +3353,7 @@ x_expand_brpm_check()
 
 EXPANDER[srpm]="source rpm"
 REQUIREMENTS[expander_srpm]="rpm rpmbuild"
+USE_HOOK[expander_srpm]="before-builddep after-builddep"
 
 x_expand_srpm_name_name()
 {
@@ -3083,6 +3369,8 @@ x_expand_srpm_help()
 {
     echo "Usage:"
     echo "	... expand ... srpm [--deps] [--nobuilddep]"
+
+    print_available_hooks expander_srpm
 }
 
 x_expand_srpm_run()
@@ -3093,6 +3381,7 @@ x_expand_srpm_run()
 
     local nodeps=--nodeps
     local nobuilddep=
+    local hookdir=
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -3102,6 +3391,10 @@ x_expand_srpm_run()
 		;;
 	    (--nobuilddep)
 		nobuilddep=1
+		shift 1
+		;;
+	    (--hookdir=*)
+		hookdir=${1#*=}
 		shift 1
 		;;
 	    (*)
@@ -3129,6 +3422,7 @@ x_expand_srpm_run()
     if [[ -z "${nobuilddep}" ]]; then
 	set +e
 	{
+	    x_run_expander_hook_maybe "$hookdir" srpm before-builddep
 	    if rpm -q dnf-plugins-core > /dev/null 2>&1; then
 		dnf builddep -y --allowerasing --skip-broken --nobest "${srpm}"
 		s=$?
@@ -3140,6 +3434,7 @@ x_expand_srpm_run()
 		s=1
 	    fi
 	    echo $s > "$t/$p_log/x_srpm-builddep.status"
+	    x_run_expander_hook_maybe "$hookdir" srpm after-builddep
 	} > "$t/$p_log/x_srpm-builddep.log" 2>&1
 	set -e
     fi
