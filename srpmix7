@@ -2087,10 +2087,10 @@ i_podman-srpm-pkglist_run()
 	(dds)
 	    podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
 		| grep -v '^Available Packages.*' \
-		| sed -n -s 's/^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)/\1 \2 \3/p'
+		| sed -n -s 's/^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)/'${distro}' \1 \2 \3/p'
 	    ;;
 	(yds)
-	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates | sort -u | sed -e 's/\(.*\).src.rpm/\1/'
+	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates | sort -u | sed -e 's/\(.*\).src.rpm/'${distro}' \1/'
 	    ;;
 	(*)
 	    -E- "list operatoin is not supported in $stype stype"
