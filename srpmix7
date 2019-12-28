@@ -1988,6 +1988,79 @@ i_podman-image-build_run()
 
 #
 #
+# Subcommand: podman-srpm-repolist
+#
+#
+ICMD+=podman-srpm-repolist
+ICMD_DESC[podman-srpm-repolist]="list repositories"
+i_podman-srpm-repolist_help()
+{
+    =printf "%s\\\\\n" "$SELF podman-srpm-repolist DISTRO"
+}
+
+i_podman-srpm-repolist_run()
+{
+    local c=${${0#i_}%_run}
+
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    local distro=$1
+    if [[ -z "$distro" ]]; then
+	-E- "DISTRO is not given in command line"
+    fi
+
+    if ! podman_has_image srpmix7-${distro}; then
+	-E%- "no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
+    fi
+
+    local stype=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${distro} \
+		      | sed -n -e 's/SRPMIX_STYPE=\(.*\)/\1/p')
+    if [[ -z "$stype" ]]; then
+	-E%- "no stype (SRPMIX_STYPE) in image %s" "srpmix7-${distro}"
+    fi
+
+    case "$stype" in
+	(dds)
+	    podman run --rm srpmix7-"${distro}" dnf -q -C repolist --all \
+		| grep -v '^repo id' \
+		| cut -d ' ' -f 1
+	    ;;
+	(yds)
+	    podman run --rm srpmix7-"${distro}" yum -C repolist all \
+		| grep -v '^Loaded plugins:.*' \
+		| grep -v '^Loading mirror speeds from cached hostfile.*' \
+		| grep -v '^ .*' \
+		| grep -v '^repo id' \
+		| grep -v '^repolist:' \
+		| sed -n -e 's|^[*!]\?\([^/ \t]\+\).*$|\1|p'
+	    ;;
+	(*)
+	    -E%- "repolist operatoin is not supported in %s stype" "$stype"
+	    ;;
+    esac
+}
+
+#
+#
 # Subcommand: podman-srpm-expand
 #
 #
