@@ -1737,10 +1737,8 @@ extras
 "
 DISTRO_docker_files[centos8]='
 FROM docker.io/library/centos:8
-RUN set -x && \
-    dnf -y install zsh rpm-build yum-utils
-RUN set -x && \
-    dnf -y install gcc annobin
+RUN dnf -y install zsh rpm-build yum-utils
+RUN dnf -y install gcc annobin
 RUN dnf config-manager --set-enabled PowerTools
 
 #include "srpmix7.dockerfile"
@@ -1773,8 +1771,7 @@ updates
 '
 DISTRO_docker_files[centos7]='
 FROM docker.io/library/centos:7
-RUN set -x && \
-    yum -y install zsh rpm-build yum-utils
+RUN yum -y install zsh rpm-build yum-utils
 
 RUN yum -y install centos-release-scl-rh
 
@@ -1813,10 +1810,8 @@ updates-testing-modular
 "
 DISTRO_docker_files[fedora31]='
 FROM docker.io/library/fedora:31
-RUN set -x && \
-    dnf -y install zsh rpm-build dnf-plugins-core
-RUN set -x && \
-    dnf -y install gcc annobin
+RUN dnf -y install zsh rpm-build dnf-plugins-core
+RUN dnf -y install gcc annobin
 
 #include "srpmix7.dockerfile"
 
@@ -1858,13 +1853,10 @@ DISTRO_stype[rhel8]=dds
 DISTRO_expander[rhel8]=srpm
 DISTRO_docker_files[rhel8]="
 FROM registry.redhat.io/ubi8/ubi
-RUN set -x && \
-    dnf -y install zsh rpm-build yum-utils
-RUN set -x && \
-    dnf -y install gcc annobin
-RUN set -x && \
-    dnf config-manager --set-enabled rhel-8-for-x86_64-appstream-rpms && \
-    dnf config-manager --set-enabled codeready-builder-for-rhel-8-x86_64-rpms
+RUN dnf -y install zsh rpm-build yum-utils
+RUN dnf -y install gcc annobin
+RUN dnf config-manager --set-enabled rhel-8-for-x86_64-appstream-rpms
+RUN dnf config-manager --set-enabled codeready-builder-for-rhel-8-x86_64-rpms
 
 RUN dnf repolist --all
 RUN dnf makecache
@@ -1883,14 +1875,11 @@ DISTRO_stype[rhel7]=yds
 DISTRO_expander[rhel7]=srpm
 DISTRO_docker_files[rhel7]="
 FROM registry.redhat.io/ubi7/ubi
-RUN set -x && \
-    yum -y install zsh rpm-build yum-utils
-RUN set -x && \
-    yum -y install gcc annobin
-RUN set -x && \
-    yum repolist all && \
-    yum-config-manager --enable rhel-7-server-optional-rpms && \
-    yum-config-manager --enable rhel-7-server-extras-rpms
+RUN yum -y install zsh rpm-build yum-utils
+RUN yum -y install gcc annobin
+RUN yum repolist all
+RUN yum-config-manager --enable rhel-7-server-optional-rpms
+RUN yum-config-manager --enable rhel-7-server-extras-rpms
 
 RUN yum makecache
 
