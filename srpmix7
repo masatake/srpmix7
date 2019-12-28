@@ -1713,6 +1713,8 @@ REQUIREMENTS[cradle_yumrepo]="yum repoquery"
 #
 typeset -A DISTRO_stype
 typeset -A DISTRO_expander
+typeset -A DISTRO_srepos
+typeset -A DISTRO_brepos
 typeset -A DISTRO_docker_files
 typeset -A DISTRO_hook_scripts
 
@@ -1721,7 +1723,19 @@ typeset -A DISTRO_hook_scripts
 #
 DISTRO_stype[centos8]=dds
 DISTRO_expander[centos8]=srpm
-DISTRO_docker_files[centos8]="
+DISTRO_srepos[centos8]="
+AppStream-source
+BaseOS-source
+centosplus-source
+extras-source
+"
+DISTRO_brepos[centos]="
+AppStream
+BaseOS
+centosplus
+extras
+"
+DISTRO_docker_files[centos8]='
 FROM docker.io/library/centos:8
 RUN set -x && \
     dnf -y install zsh rpm-build yum-utils
@@ -1729,66 +1743,66 @@ RUN set -x && \
     dnf -y install gcc annobin
 RUN dnf config-manager --set-enabled PowerTools
 
+#include "srpmix7.dockerfile"
+
 RUN dnf repolist --all
 RUN dnf makecache
 
-ENV SRPMIX_STYPE dds
-ENV SRPMIX_EXPANDER srpm
-
 COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
-"
+'
 
 #
 # centos7
 #
 DISTRO_stype[centos7]=yds
 DISTRO_expander[centos7]=srpm
-DISTRO_docker_files[centos7]="
+DISTRO_srepos[centos7]='
+base-source
+centos-sclo-rh-source
+centosplus-source
+extras-source
+updates-source
+'
+DISTRO_brepos[centos7]='
+base
+centos-sclo-rh
+centosplus
+extras
+updates
+'
+DISTRO_docker_files[centos7]='
 FROM docker.io/library/centos:7
 RUN set -x && \
     yum -y install zsh rpm-build yum-utils
 
 RUN yum -y install centos-release-scl-rh
 
+#include "srpmix7.dockerfile"
+
 RUN yum repolist all
 RUN yum makecache
-
-ENV SRPMIX_STYPE yds
-ENV SRPMIX_EXPANDER srpm
 
 RUN yum -y install cpp
 
 COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
-"
+'
 
 #
 # fedora31
 #
 DISTRO_stype[fedora31]=dds
 DISTRO_expander[fedora31]=srpm
-DISTRO_docker_files[fedora31]="
-FROM docker.io/library/fedora:31
-RUN set -x && \
-    dnf -y install zsh rpm-build dnf-plugins-core
-RUN set -x && \
-    dnf -y install gcc annobin
-
-RUN dnf repolist --all
-RUN dnf -y makecache
-
-ENV SRPMIX_STYPE dds
-ENV SRPMIX_EXPANDER srpm
-
-COPY ./hooks /hooks
-COPY ./srpmix7 /usr/bin/srpmix7
+DISTRO_srepos[fedora31]="
+fedora-modular-source
+fedora-source
+updates-modular-source
+updates-source
+updates-testing-modular-source
+updates-testing-source
 "
-
-DISTRO_hook_scripts[fedora31/expander_srpm/before-builddep]='
-#!/bin/zsh
-typeset -a REPOS
-REPOS=(
+DISTRO_brepos[fedora31]="
 fedora
 fedora-cisco-openh264
 fedora-modular
@@ -1796,7 +1810,29 @@ updates
 updates-modular
 updates-testing
 updates-testing-modular
-)
+"
+DISTRO_docker_files[fedora31]='
+FROM docker.io/library/fedora:31
+RUN set -x && \
+    dnf -y install zsh rpm-build dnf-plugins-core
+RUN set -x && \
+    dnf -y install gcc annobin
+
+#include "srpmix7.dockerfile"
+
+RUN dnf repolist --all
+RUN dnf -y makecache
+
+COPY ./hooks /hooks
+COPY ./srpmix7 /usr/bin/srpmix7
+'
+
+DISTRO_hook_scripts[fedora31/expander_srpm/before-builddep]='
+#!/bin/zsh
+typeset -a REPOS
+REPOS=('"
+${DISTRO_brepos[fedora31]}
+"')
 dnf config-manager --set-disabled ''*''
 for r in "${REPOS[@]}"; do
     dnf config-manager --set-enabled $r
@@ -1806,14 +1842,9 @@ done
 DISTRO_hook_scripts[fedora31/stype_dds/before-download]='
 #!/bin/zsh
 typeset -a REPOS
-REPOS=(
-fedora-modular-source
-fedora-source
-updates-modular-source
-updates-source
-updates-testing-modular-source
-updates-testing-source
-)
+REPOS=('"
+${DISTRO_srepos[fedora31]}
+"')
 dnf config-manager --set-disabled ''*''
 for r in "${REPOS[@]}"; do
     dnf config-manager --set-enabled $r
@@ -1955,7 +1986,32 @@ i_podman-image-build_run()
 	-E- "$c: unexpected temorary file name: $tmpdir"
     fi
 
-    echo "${DISTRO_docker_files[$distro]}" > $tmpdir/${distro}.dockerfile
+    echo "${DISTRO_docker_files[$distro]}" > $tmpdir/Dockerfile.in
+    echo "ENV SRPMIX_STYPE ${stype}" >> $tmpdir/srpmix7.dockerfile
+    echo "ENV SRPMIX_EXPANDER ${expander}" >> $tmpdir/srpmix7.dockerfile
+    local r
+
+    case "$stype" in
+	(dds)
+	    for r in $(echo ${DISTRO_srepos[$distro]}); do
+		echo "RUN dnf config-manager --set-enabled $r"
+	    done >> $tmpdir/srpmix7.dockerfile
+	    for r in $(echo ${DISTRO_brepos[$distro]}); do
+		echo "RUN dnf config-manager --set-enabled $r"
+	    done >> $tmpdir/srpmix7.dockerfile
+	    ;;
+	(yds)
+	    for r in $(echo ${DISTRO_srepos[$distro]}); do
+		echo "RUN yum-config-manager --enable $r"
+	    done >> $tmpdir/srpmix7.dockerfile
+	    for r in $(echo ${DISTRO_brepos[$distro]}); do
+		echo "RUN yum-config-manager --enable $r"
+	    done >> $tmpdir/srpmix7.dockerfile
+	    ;;
+	(*)
+	    -E- "$c: list operatoin is not supported in %s stype"
+	    ;;
+    esac
     cp $SELF_FULL $tmpdir/srpmix7
 
     mkdir $tmpdir/hooks
@@ -1979,7 +2035,7 @@ i_podman-image-build_run()
 
     (
 	cd $tmpdir
-	podman build -f $tmpdir/${distro}.dockerfile -t srpmix7-${distro} . \
+	podman build -f $tmpdir/Dockerfile.in -t srpmix7-${distro} . \
 	    && rm -rf "$tmpdir"
     )
 
