@@ -2342,6 +2342,9 @@ podman_publish()
 
     if [[ -d $dd ]]; then
 	if [[ $dont_overwrite -eq 1 ]]; then
+	    if ! fgrep ${distro} $dd/${p_info}/podman-srpm-distro; then
+		echo ${distro} >> $dd/${p_info}/podman-srpm-distro
+	    fi
 	    echo "existing: ${dd}"
 	    rm -rf $t
 	    return 2
@@ -2352,6 +2355,7 @@ podman_publish()
 
     mkdir -p $d
     mv $t $dd
+    echo ${distro} >> $dd/${p_info}/podman-srpm-distro
     chmod a+rx $dd
     echo "${msg}: ${dd}"
     return $r
