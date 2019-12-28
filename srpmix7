@@ -1851,22 +1851,31 @@ done
 #
 DISTRO_stype[rhel8]=dds
 DISTRO_expander[rhel8]=srpm
-DISTRO_docker_files[rhel8]="
+DISTRO_srepos[rhel8]='
+codeready-builder-for-rhel-8-x86_64-source-rpms
+rhel-8-for-x86_64-appstream-source-rpms
+rhel-8-for-x86_64-baseos-source-rpms
+'
+DISTRO_brepos[rhel8]='
+codeready-builder-for-rhel-8-x86_64-rpms
+rhel-8-for-x86_64-appstream-rpms
+rhel-8-for-x86_64-baseos-rpms
+'
+DISTRO_docker_files[rhel8]='
 FROM registry.redhat.io/ubi8/ubi
 RUN dnf -y install zsh rpm-build yum-utils
 RUN dnf -y install gcc annobin
 RUN dnf config-manager --set-enabled rhel-8-for-x86_64-appstream-rpms
 RUN dnf config-manager --set-enabled codeready-builder-for-rhel-8-x86_64-rpms
 
+#include "srpmix7.dockerfile"
+
 RUN dnf repolist --all
 RUN dnf makecache
 
-ENV SRPMIX_STYPE dds
-ENV SRPMIX_EXPANDER srpm
-
 COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
-"
+'
 
 #
 # rhel7
