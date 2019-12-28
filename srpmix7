@@ -2033,6 +2033,73 @@ i_podman-image-build_run()
 
 #
 #
+# Subcommand: podman-srpm-pkglist
+#
+#
+ICMD+=podman-srpm-pkglist
+ICMD_DESC[podman-srpm-pkglist]="list packages"
+i_podman-srpm-pkglist_help()
+{
+    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist DISTRO"
+}
+
+i_podman-srpm-pkglist_run()
+{
+    local c=${${0#i_}%_run}
+
+    while [[ $# -gt 0 ]]; do
+	case $1 in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    local distro=$1
+    if [[ -z "$distro" ]]; then
+	-E- "DISTRO is not given in command line"
+    fi
+
+    if ! podman_has_image srpmix7-${distro}; then
+	-E%- "no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
+    fi
+
+    local stype=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${distro} \
+		      | sed -n -e 's/SRPMIX_STYPE=\(.*\)/\1/p')
+    if [[ -z "$stype" ]]; then
+	-E%- "no stype (SRPMIX_STYPE) in image %s" "srpmix7-${distro}"
+    fi
+
+    case "$stype" in
+	(dds)
+	    podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
+		| grep -v '^Available Packages.*' \
+		| sed -n -s 's/^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)/\1 \2 \3/p'
+	    ;;
+	(yds)
+	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates | sort -u | sed -e 's/\(.*\).src.rpm/\1/'
+	    ;;
+	(*)
+	    -E- "list operatoin is not supported in $stype stype"
+	    ;;
+    esac
+}
+
+#
+#
 # Subcommand: podman-srpm-repolist
 #
 #
