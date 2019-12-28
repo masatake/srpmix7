@@ -2261,7 +2261,7 @@ i_podman-srpm-expand_run()
 	podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
 	       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
 
-	podman_publish ${dont_overwrite} ${ddir} ${tmpdir} ${expander}
+	podman_publish ${dont_overwrite} ${ddir} ${tmpdir} ${expander} ${distro}
 	local s=$?
     }
     set -e
@@ -2291,6 +2291,7 @@ podman_publish()
     local s=$2
     local t=$3
     local ex=$4
+    local distro=$5
     local msg
     local r
     if [[ -f ${t}/SUCCESSFUL ]]; then
@@ -2309,7 +2310,7 @@ podman_publish()
 
     local ver=$(cat ${t}/info/srpm_query_VERSION)
     local rel=$(cat ${t}/info/srpm_query_RELEASE)
-    local dd=$d/${ver}-${rel}--${ex}
+    local dd=$d/${ver}-${rel}--${ex}--${distro}
 
     if [[ -d $dd ]]; then
 	if [[ $dont_overwrite -eq 1 ]]; then
