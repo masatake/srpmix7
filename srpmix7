@@ -2279,8 +2279,9 @@ i_podman-srpm-expand_run()
 	-E%- "no expander (SRPMIX_EXPANDER) in image %s" "srpmix7-${distro}"
     fi
 
-    mkdir -p ${ddir}/sources
     echo -n "expanding $pkg of $distro..."
+
+    mkdir -p ${ddir}/sources
     local tmpdir=$(mktemp -d --suffix=srpmix7-$c-${distro})
 
     set +e
