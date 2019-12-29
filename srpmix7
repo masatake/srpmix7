@@ -2112,7 +2112,7 @@ i_podman-srpm-pkglist_run()
 	(yds)
 	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
 		| sed -e 's/\(.*\).src.rpm/\1/' \
-		| i_split_n_vr_filter ${distro} \
+		| split_n_vr_filter ${distro} \
 		| sort -u
 	    ;;
 	(*)
@@ -2121,7 +2121,7 @@ i_podman-srpm-pkglist_run()
     esac
 }
 
-i_split_n_vr()
+split_n_vr()
 {
     local V=$1
     local n vr
@@ -2131,14 +2131,14 @@ i_split_n_vr()
     echo $n $vr
 }
 
-i_split_n_vr_filter()
+split_n_vr_filter()
 {
     local distro=$1
     local V
     while read V; do
 	if [[ -z "$v" ]]; then
 	    echo -n "${distro} "
-	    i_split_n_vr "$V"
+	    split_n_vr "$V"
 	fi
     done
 }
