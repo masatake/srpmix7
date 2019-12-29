@@ -2229,14 +2229,17 @@ i_podman-srpm-expand_help()
     =printf "%s\\\\\n" "$SELF podman-srpm-expand [OPTIONS] DISTRO SRPM DISTDIR "
     echo "OPTIONS:"
     {
-	echo "	--dont-overwrite|-a"
+	echo "	--dont-overwrite|-a if-successful[:status]|if-existing[:status]"
+	echo "  --overwrite-even-if-incomplete"
     }
 }
 
 i_podman-srpm-expand_run()
 {
     local c=${${0#i_}%_run}
-    local dont_overwrite=0
+    local dont_overwrite
+    local dont_overwrite_status
+    local overwrite_even_if_incomplete
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -2251,7 +2254,23 @@ i_podman-srpm-expand_run()
 		set -- "$opt" "$next" "$@"
 		;;
 	    (--dont-overwrite|-a)
-		dont_overwrite=1
+		case "$2" in
+		    (if-successful|if-existing)
+			dont_overwrite=${2}
+			dont_overwrite_status=0
+			;;
+		    (if-existing:[0-9]*|if-successful:[0-9]*)
+			dont_overwrite=${2%:*}
+			dont_overwrite_status=${2#*:}
+			;;
+		    (*)
+			-E- "$c: unknown dont-overwrite condition: $2"
+			;;
+		esac
+		shift 2
+		;;
+	    (--overwrite-even-if-incomplete)
+		overwrite_even_if_incomplete=1
 		shift 1
 		;;
 	    (-*)
@@ -2299,6 +2318,35 @@ i_podman-srpm-expand_run()
 
     echo -n "expanding $pkg of $distro..."
 
+    local n pkgname vr expected_dd
+    n=$(name_prefix "${pkg}")
+    read name ver_rel <<< $(split_n_vr ${pkg})
+    expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
+
+    case "${dont_overwrite}" in
+	(if-existing)
+	    if [[ -e ${expected_dd}/${p_successful} ]]; then
+		mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+		touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+		echo "existing as SUCCESSFUL: ${expected_dd}"
+		return ${dont_overwrite_status}
+	    elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
+		mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+		touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+		echo "existing as INCOMPLETE: ${expected_dd}"
+		return ${dont_overwrite_status}
+	    fi
+	    ;;
+	(if-successful)
+	    if [[ -e ${expected_dd}/${p_successful} ]]; then
+		mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+		touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+		echo "existing as SUCCESSFUL:  ${expected_dd}"
+		return ${dont_overwrite_status}
+	    fi
+	    ;;
+    esac
+
     mkdir -p ${ddir}/sources
     local tmpdir=$(mktemp -d --suffix=srpmix7-$c-${distro})
 
@@ -2307,23 +2355,11 @@ i_podman-srpm-expand_run()
 	podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
 	       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
 
-	podman_publish ${dont_overwrite} ${ddir} ${tmpdir} ${expander} ${distro}
+	podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro}
 	local s=$?
     }
     set -e
-
-    case $s in
-	0|1)
-	    return $s
-	    ;;
-	2)
-	    echo "failed: ${tmpdir}"
-	    return 2
-	    ;;
-	*)
-	    echo "unknown: ${tmpdir}"
-	    return $s
-    esac
+    return $s
 }
 
 podman_has_image()
@@ -2331,51 +2367,64 @@ podman_has_image()
     podman image inspect "$1" > /dev/null 2>&1
 }
 
-podman_publish()
+podman_publish_maybe()
 {
-    local dont_overwrite=$1
-    local s=$2
-    local t=$3
-    local ex=$4
+    local overwrite_even_if_incomplete=$1
+    local destdir=$2
+    local tmp_srcdir=$3
+    local expander=$4
     local distro=$5
     local msg
     local r
-    if [[ -f ${t}/SUCCESSFUL ]]; then
+
+    if [[ -f "${tmp_srcdir}/${p_successful}" ]]; then
 	msg=successful
 	r=0
-    elif [[ -f ${t}/SUCCESSFUL ]]; then
+    elif [[ -f "${tmp_srcdir}/${p_incomplete}" ]]; then
 	msg=incomplete
 	r=1
     else
+	echo "error: ${tmp_srcdir}"
 	return 2
     fi
 
-    local name=$(cat ${t}/$p_info/srpm_query_NAME)
-    local n=$(name_prefix ${name})
-    local d=${s}/sources/$n/$name
+    local name=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_NAME)
+    local ver=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_VERSION)
+    local rel=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_RELEASE)
 
-    local ver=$(cat ${t}/$p_info/srpm_query_VERSION)
-    local rel=$(cat ${t}/$p_info/srpm_query_RELEASE)
-    local dd=$d/${ver}-${rel}--${ex}
+    local n=$(name_prefix "${name}")
+    local dtail=${ver}-${rel}--${expander}
 
-    if [[ -d $dd ]]; then
-	if [[ $dont_overwrite -eq 1 ]]; then
-	    if ! fgrep ${distro} $dd/${p_info}/podman-srpm-distro; then
-		echo ${distro} >> $dd/${p_info}/podman-srpm-distro
-	    fi
-	    echo "existing: ${dd}"
-	    rm -rf $t
-	    return 2
-	else
-	    rm -rf "${dd}"
-	fi
+    local d=${destdir}/sources/${n}/${name}
+    local dd=${d}/${dtail}
+    local dd_hiden=${d}/.${dtail}--$$
+
+    if [[ -e "${dd}/${p_successful}" \
+	      && "${msg}" == "incomplete" \
+	      && ! ( -n "${overwrite_even_if_incomplete}" ) ]]; then
+	echo "${msg} but existing as SUCCESSFUL: ${dd}"
+	return $r
     fi
 
+    local d_distro=${p_info}/podman-srpm-distro.d
     mkdir -p $d
-    mv $t $dd
-    echo ${distro} >> $dd/${p_info}/podman-srpm-distro
+    if [[ -e "${dd}" ]]; then
+	mv "${dd}" "${dd_hiden}"
+    fi
+
+    mv ${tmp_srcdir} $dd
     chmod a+rx $dd
+    if [[ -e "${dd_hiden}/${d_distro}" ]]; then
+	mv "${dd_hiden}/${d_distro}" "${dd}/${d_distro}"
+    fi
+
+    mkdir -p "${dd}/${d_distro}"
+    touch "${dd}/${d_distro}/${distro}"
     echo "${msg}: ${dd}"
+
+    if [[ -e "${dd_hiden}" ]]; then
+	rm -rf "${dd_hiden}"
+    fi
     return $r
 }
 
