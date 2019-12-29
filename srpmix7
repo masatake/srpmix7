@@ -2396,9 +2396,16 @@ podman_publish_maybe()
     local name=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_NAME)
     local ver=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_VERSION)
     local rel=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_RELEASE)
+    local epoch=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_EPOCH)
 
     local n=$(name_prefix "${name}")
-    local dtail=${ver}-${rel}--${expander}
+    local dtail
+
+    if [[ -n "${epoch}" ]]; then
+	dtail=${epoch}:${ver}-${rel}--${expander}
+    else
+	dtail=${ver}-${rel}--${expander}
+    fi
 
     local d=${destdir}/sources/${n}/${name}
     local dd=${d}/${dtail}
