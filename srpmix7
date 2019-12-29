@@ -1882,7 +1882,17 @@ COPY ./srpmix7 /usr/bin/srpmix7
 #
 DISTRO_stype[rhel7]=yds
 DISTRO_expander[rhel7]=srpm
-DISTRO_docker_files[rhel7]="
+DISTRO_srepos[rhel7]='
+rhel-7-server-source-rpms
+rhel-7-server-optional-source-rpms
+rhel-7-server-extras-source-rpms
+'
+DISTRO_brepos[rhel7]='
+rhel-7-server-rpms
+rhel-7-server-optional-rpms
+rhel-7-server-extras-rpms
+'
+DISTRO_docker_files[rhel7]='
 FROM registry.redhat.io/ubi7/ubi
 RUN yum -y install zsh rpm-build yum-utils
 RUN yum -y install gcc annobin
@@ -1890,14 +1900,13 @@ RUN yum repolist all
 RUN yum-config-manager --enable rhel-7-server-optional-rpms
 RUN yum-config-manager --enable rhel-7-server-extras-rpms
 
-RUN yum makecache
+#include "srpmix7.dockerfile"
 
-ENV SRPMIX_STYPE yds
-ENV SRPMIX_EXPANDER srpm
+RUN yum makecache
 
 COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
-"
+'
 
 ICMD+=podman-image-build
 ICMD_DESC[podman-image-build]="build container image for expanding source code"
