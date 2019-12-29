@@ -2348,14 +2348,14 @@ i_podman-srpm-expand_run()
     esac
 
     mkdir -p ${ddir}/sources
-    local tmpdir=$(mktemp -d --suffix=srpmix7-$c-${distro})
+    local tmpdir=$(mktemp -d --suffix=srpmix7-$c--${distro})
 
     set +e
     {
 	podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
 	       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
 
-	podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro}
+	podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro} ${pkg}
 	local s=$?
     }
     set -e
@@ -2374,6 +2374,7 @@ podman_publish_maybe()
     local tmp_srcdir=$3
     local expander=$4
     local distro=$5
+    local pkg=$6
     local msg
     local r
 
@@ -2384,7 +2385,11 @@ podman_publish_maybe()
 	msg=incomplete
 	r=1
     else
-	echo "error: ${tmp_srcdir}"
+	local derror=${destdir}/_errors
+	local derrortail=$(basename ${tmp_srcdir})__${pkg}
+	mkdir -p "${derror}"
+	mv "${tmp_srcdir}" "${derror}/${derrortail}"
+	echo "error: ${derror}/${derrortail}"
 	return 2
     fi
 
