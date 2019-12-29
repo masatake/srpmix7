@@ -2342,7 +2342,7 @@ podman_publish()
 
     if [[ -d $dd ]]; then
 	if [[ $dont_overwrite -eq 1 ]]; then
-	    echo "existed: ${dd}"
+	    echo "existing: ${dd}"
 	    rm -rf $t
 	    return 2
 	else
