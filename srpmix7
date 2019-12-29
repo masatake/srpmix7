@@ -2351,7 +2351,7 @@ podman_publish()
     fi
 
     local name=$(cat ${t}/$p_info/srpm_query_NAME)
-    local n=${name:0:1}
+    local n=$(name_prefix ${name})
     local d=${s}/sources/$n/$name
 
     local ver=$(cat ${t}/$p_info/srpm_query_VERSION)
