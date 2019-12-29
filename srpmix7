@@ -2356,7 +2356,7 @@ podman_publish()
 
     local ver=$(cat ${t}/$p_info/srpm_query_VERSION)
     local rel=$(cat ${t}/$p_info/srpm_query_RELEASE)
-    local dd=$d/${ver}-${rel}--${ex}--${distro}
+    local dd=$d/${ver}-${rel}--${ex}
 
     if [[ -d $dd ]]; then
 	if [[ $dont_overwrite -eq 1 ]]; then
