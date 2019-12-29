@@ -2087,15 +2087,42 @@ i_podman-srpm-pkglist_run()
 	(dds)
 	    podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
 		| grep -v '^Available Packages.*' \
-		| sed -n -s 's/^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)/'${distro}' \1 \2 \3/p'
+		| sed -n -s 's/^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)/'${distro}' \1 \2/p' \
+		| sort -u
+
 	    ;;
 	(yds)
-	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates | sort -u | sed -e 's/\(.*\).src.rpm/'${distro}' \1/'
+	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
+		| sed -e 's/\(.*\).src.rpm/\1/' \
+		| i_split_n_vr_filter ${distro} \
+		| sort -u
 	    ;;
 	(*)
 	    -E- "list operatoin is not supported in $stype stype"
 	    ;;
     esac
+}
+
+i_split_n_vr()
+{
+    local V=$1
+    local n vr
+    n=${V%%-[0-9]*}
+    vr=${V:((${#n} + 1))}
+
+    echo $n $vr
+}
+
+i_split_n_vr_filter()
+{
+    local distro=$1
+    local V
+    while read V; do
+	if [[ -z "$v" ]]; then
+	    echo -n "${distro} "
+	    i_split_n_vr "$V"
+	fi
+    done
 }
 
 #
