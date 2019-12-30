@@ -2065,13 +2065,13 @@ ICMD+=podman-srpm-pkglist
 ICMD_DESC[podman-srpm-pkglist]="list packages"
 i_podman-srpm-pkglist_help()
 {
-    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist [--build-args=DISTDIR] DISTRO"
+    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist [--expand-args=DISTDIR] DISTRO"
 }
 
 i_podman-srpm-pkglist_run()
 {
     local c=${${0#i_}%_run}
-    local build_args
+    local expand_args
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -2085,11 +2085,11 @@ i_podman-srpm-pkglist_run()
 		shift 1
 		set -- "$opt" "$next" "$@"
 		;;
-	    (--build-args)
+	    (--expand-args)
 		if [[ -z "$2" ]]; then
-		    -E- "$c: DISTDIR for --build-args is not given"
+		    -E- "$c: DISTDIR for --expand-args is not given"
 		fi
-		build_args=$2
+		expand_args=$2
 		shift 2
 		;;
 	    (-*)
@@ -2119,26 +2119,26 @@ i_podman-srpm-pkglist_run()
     case "$stype" in
 	(dds)
 	    local fmt
-	    if [[ -n "${build_args}" ]]; then
-		fmt="${distro}"' \1-\2 '"${build_args}"
+	    if [[ -n "${expand_args}" ]]; then
+		fmt="${distro}"' \1-\2 '"${expand_args}"
 	    else
 		fmt='\1 \2'
 	    fi
 	    podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
 		| grep -v '^Available Packages.*' \
-		| sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)|'"${fmt}"'|p' \
+		| sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
 		| sort -u
 
 	    ;;
 	(yds)
 	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
-		| sed -e 's/\(.*\).src.rpm/\1/' \
+		| sed -e 's/\(.*\).src.rpm.*$/\1/' \
 		| \
 		{
 		    local nvr
-		    if [[ -n "${build_args}" ]]; then
+		    if [[ -n "${expand_args}" ]]; then
 			while read nvr; do
-			    echo "${distro} ${nvr}" "${build_args}"
+			    echo "${distro} ${nvr}" "${expand_args}"
 			done
 		    else
 			split_n_vr_filter
