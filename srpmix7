@@ -2374,34 +2374,36 @@ i_podman-srpm-expand_run()
 	{
 	    echo -n "expanding $pkg of $distro..."
 
-	    local n pkgname vr expected_dd
-	    n=$(name_prefix "${pkg}")
-	    read name ver_rel <<< $(split_n_vr ${pkg})
-	    expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
+	    local n=$(name_prefix "${pkg}")
+	    local name ver_rel
 
-	    case "${dont_overwrite}" in
-		(if-existing)
-		    if [[ -e ${expected_dd}/${p_successful} ]]; then
-			mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-			touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-			echo "existing as SUCCESSFUL: ${expected_dd}"
-			return ${dont_overwrite_status}
-		    elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
-			mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-			touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-			echo "existing as INCOMPLETE: ${expected_dd}"
-			return ${dont_overwrite_status}
-		    fi
-		    ;;
-		(if-successful)
-		    if [[ -e ${expected_dd}/${p_successful} ]]; then
-			mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-			touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-			echo "existing as SUCCESSFUL:  ${expected_dd}"
-			return ${dont_overwrite_status}
-		    fi
-		    ;;
-	    esac
+	    read name ver_rel <<< $(split_n_vr ${pkg})
+	    if [[ -n "${ver_rel}" ]]; then
+		local expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
+		case "${dont_overwrite}" in
+		    (if-existing)
+			if [[ -e ${expected_dd}/${p_successful} ]]; then
+			    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+			    touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+			    echo "existing as SUCCESSFUL: ${expected_dd}"
+			    return ${dont_overwrite_status}
+			elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
+			    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+			    touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+			    echo "existing as INCOMPLETE: ${expected_dd}"
+			    return ${dont_overwrite_status}
+			fi
+			;;
+		    (if-successful)
+			if [[ -e ${expected_dd}/${p_successful} ]]; then
+			    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+			    touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+			    echo "existing as SUCCESSFUL:  ${expected_dd}"
+			    return ${dont_overwrite_status}
+			fi
+			;;
+		esac
+	    fi
 
 	    mkdir -p ${ddir}/sources
 	    mkdir -p ${ddir}/_expand
