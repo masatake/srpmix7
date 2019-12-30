@@ -2065,7 +2065,7 @@ ICMD+=podman-srpm-pkglist
 ICMD_DESC[podman-srpm-pkglist]="list packages"
 i_podman-srpm-pkglist_help()
 {
-    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist [--expand-args=DISTDIR] DISTRO"
+    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist [--expand-args=DISTDIR] DISTRO..."
 }
 
 i_podman-srpm-pkglist_run()
@@ -2106,50 +2106,50 @@ i_podman-srpm-pkglist_run()
 	-E- "$c: DISTRO is not given in command line"
     fi
 
-    if ! podman_has_image srpmix7-${distro}; then
-	-E%- "$c: no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
-    fi
+    for distro in "$@"; do
+	if ! podman_has_image srpmix7-${distro}; then
+	    -E%- "$c: no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
+	fi
 
-    local stype=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${distro} \
-		      | sed -n -e 's/SRPMIX_STYPE=\(.*\)/\1/p')
-    if [[ -z "$stype" ]]; then
-	-E%- "$c: no stype (SRPMIX_STYPE) in image %s" "srpmix7-${distro}"
-    fi
+	local stype=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${distro} \
+			  | sed -n -e 's/SRPMIX_STYPE=\(.*\)/\1/p')
+	if [[ -z "$stype" ]]; then
+	    -E%- "$c: no stype (SRPMIX_STYPE) in image %s" "srpmix7-${distro}"
+	fi
 
-    case "$stype" in
-	(dds)
-	    local fmt
-	    if [[ -n "${expand_args}" ]]; then
-		fmt="${distro}"' \1-\2 '"${expand_args}"
-	    else
-		fmt='\1 \2'
-	    fi
-	    podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
-		| grep -v '^Available Packages.*' \
-		| sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
-		| sort -u
+	case "$stype" in
+	    (dds)
+		local fmt
+		if [[ -n "${expand_args}" ]]; then
+		    fmt="${distro}"' \1-\2 '"${expand_args}"
+		else
+		    fmt='\1 \2'
+		fi
+		podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
+		    | grep -v '^Available Packages.*' \
+		    | sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
+		    | sort -u
 
-	    ;;
-	(yds)
-	    podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
-		| sed -e 's/\(.*\).src.rpm.*$/\1/' \
-		| \
-		{
-		    local nvr
-		    if [[ -n "${expand_args}" ]]; then
-			while read nvr; do
-			    echo "${distro} ${nvr}" "${expand_args}"
-			done
-		    else
-			split_n_vr_filter
-		    fi
-		} \
-		| sort -u
-	    ;;
-	(*)
-	    -E- "$c: list operatoin is not supported in $stype stype"
-	    ;;
-    esac
+		;;
+	    (yds)
+		podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
+		    | sed -e 's/\(.*\).src.rpm.*$/\1/' \
+		    | {
+			local nvr
+			if [[ -n "${expand_args}" ]]; then
+			    while read nvr; do
+				echo "${distro} ${nvr}" "${expand_args}"
+			    done
+			else
+			    split_n_vr_filter
+			fi
+		    } | sort -u
+		;;
+	    (*)
+		-E- "$c: list operatoin is not supported in $stype stype"
+		;;
+	esac
+    done
 }
 
 split_n_vr()
