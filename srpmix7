@@ -1939,6 +1939,8 @@ i_podman-image-build_run()
 {
     local k
     local c=${${0#i_}%_run}
+    local opt
+    local next
     local dont_overwrite=0
 
     while [[ $# -gt 0 ]]; do
@@ -2071,6 +2073,8 @@ i_podman-srpm-pkglist_help()
 i_podman-srpm-pkglist_run()
 {
     local c=${${0#i_}%_run}
+    local opt
+    local next
     local expand_args
 
     while [[ $# -gt 0 ]]; do
@@ -2189,6 +2193,8 @@ i_podman-srpm-repolist_help()
 i_podman-srpm-repolist_run()
 {
     local c=${${0#i_}%_run}
+    local opt
+    local next
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -2270,6 +2276,8 @@ i_podman-srpm-expand_help()
 i_podman-srpm-expand_run()
 {
     local c=${${0#i_}%_run}
+    local opt
+    local next
     local dont_overwrite=if-existing
     local dont_overwrite_status=0
     local overwrite_even_if_incomplete
