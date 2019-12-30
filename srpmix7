@@ -2143,10 +2143,10 @@ split_n_vr_filter()
     local distro=$1
     local V
     while read V; do
-	if [[ -z "$v" ]]; then
+	if [[ -n "$distro" ]]; then
 	    echo -n "${distro} "
-	    split_n_vr "$V"
 	fi
+	split_n_vr "$V"
     done
 }
 
