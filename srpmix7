@@ -2512,6 +2512,118 @@ podman_publish_maybe()
     return $r
 }
 
+#
+#
+# Subcommand: podman-srpm-deploy
+#
+#
+ICMD+=podman-srpm-deploy
+ICMD_DESC[podman-srpm-deploy]="deploy source code in distros"
+
+i_podman-srpm-deploy_help()
+{
+    =printf "%s\\\\\n" "$SELF podman-srpm-deploy [OPTIONS] DISTRO..."
+    echo "OPTIONS:"
+    {
+	echo "	--output-directory|-o DIR"
+	echo "		default: /var/lib/srpmix7"
+	echo "	--procs|-n N"
+	echo "		default: $(expr 3 \* $(nproc --ignore=1))"
+	echo "	--dont-rebuild-image|-B"
+	echo "	--dont-overwrite ..."
+	echo "		see also: $SELF podman-srpm-expand --help"
+    }
+}
+
+i_podman-srpm-deploy_run()
+{
+    local c=${${0#i_}%_run}
+    local opt
+    local next
+    local odir=/var/lib/srpmix7
+    local procs=$(expr 3 \* $(nproc --ignore=1))
+    local dont_rebuild_image
+    local dont_overwrite_option
+
+    while [[ $# -gt 0 ]]; do
+	case "$1" in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (--output-directory|-o)
+		if [[ -z "$2" ]]; then
+		    -E- "$c: no directory name is given for $1 option"
+		fi
+		odir=$2
+		shift 2
+		;;
+	    (--procs|-n)
+		if [[ ! ("$2" =~ '[0-9]+') ]]; then
+		    -E- "$c: a number expected for $1 option"
+		fi
+		if [[ $2 -eq 0 ]]; then
+		    -E- "$c: nothing can be done without cpu"
+		fi
+
+		procs=$2
+		shift 2
+		;;
+	    (--dont-rebuild-image|-B)
+		dont_rebuild_image=1
+		shift 1
+		;;
+	    (--dont-overwrite)
+		dont_overwrite_option="--dont-overwrite=$2"
+		shift 2
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    mkdir -p "${odir}"
+    if [[ ! -d ${odir} ]]; then
+	-E- "$c: no output directory"
+    fi
+
+    if [[ $# -eq 0 ]]; then
+	-E- "$c: no distribution is given"
+    fi
+
+    local distro
+
+    if [[ -z "${dont_rebuild_image}" ]]; then
+	for distro in "$@"; do
+	    i_podman-image-build_run "${distro}"
+	    if ! podman_has_image ${distro}; then
+		-E- "$c: error in building image for ${distro}"
+	    fi
+	done
+    fi
+
+    for distro in "$@"; do
+	if ! podman_has_image ${distro}; then
+	    -E- "$c: no image for ${distro}"
+	fi
+    done
+
+    ${SELF_FULL} podman-srpm-pkglist --expand-args="${odir}" "$@" \
+	| xargs --process-slot-var=CPUID \
+		-P "${procs}" \
+		-n 3 \
+		${SELF_FULL} podman-srpm-expand --xargs=CPUID ${dont_overwrite_option}
+}
 
 #
 #
