@@ -2407,7 +2407,7 @@ i_podman-srpm-expand_run()
 
 	    mkdir -p ${ddir}/sources
 	    mkdir -p ${ddir}/_expand
-	    local tmpdir=$(mktemp -p ${ddir}/_expand -d --suffix=srpmix7-$c--${distro})
+	    local tmpdir=$(mktemp --tmpdir=${ddir}/_expand -d --suffix=srpmix7-$c--${distro})
 
 	    {
 		podman run --name=${pkg}--${distro} --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
