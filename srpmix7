@@ -1979,7 +1979,7 @@ i_podman-image-build_run()
     fi
 
     local distro=$1
-    if podman_has_image srpmix7-${distro} && [[ "${dont_overwrite}" -eq 1 ]]; then
+    if podman_has_image ${distro} && [[ "${dont_overwrite}" -eq 1 ]]; then
 	return 0
     fi
 
@@ -2111,7 +2111,7 @@ i_podman-srpm-pkglist_run()
     fi
 
     for distro in "$@"; do
-	if ! podman_has_image srpmix7-${distro}; then
+	if ! podman_has_image ${distro}; then
 	    -E%- "$c: no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
 	fi
 
@@ -2222,7 +2222,7 @@ i_podman-srpm-repolist_run()
 	-E- "DISTRO is not given in command line"
     fi
 
-    if ! podman_has_image srpmix7-${distro}; then
+    if ! podman_has_image ${distro}; then
 	-E%- "no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
     fi
 
@@ -2353,7 +2353,7 @@ i_podman-srpm-expand_run()
 	-E- "DESTDIR is not given in command line"
     fi
 
-    if ! podman_has_image srpmix7-${distro}; then
+    if ! podman_has_image ${distro}; then
 	-E%- "no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
     fi
 
@@ -2436,7 +2436,7 @@ i_podman-srpm-expand_run()
 
 podman_has_image()
 {
-    podman image inspect "$1" > /dev/null 2>&1
+    podman image inspect srpmix7-"$1" > /dev/null 2>&1
 }
 
 podman_publish_maybe()
