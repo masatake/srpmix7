@@ -2479,14 +2479,14 @@ i_expand_help()
     echo "OPTIONS:"
     {
 	echo "	--action-when-error=abort|continue*"
-	echo "  --bundle"
+	echo "	--bundle"
 	echo "	--debug"
 	echo "	--quit-after=optparse|prepare"
 	echo "	--trace"
 	echo "	--help-expander=EXPANDER"
 	echo "	--help-stype=STYPE"
 	echo "	--help-dtype=DTYPE"
-	echo "  --hookdir=DIR"
+	echo "	--hookdir=DIR"
     }
     echo "STYPE:"
     for k in ${(k)EXPAND_STYPE}; do
