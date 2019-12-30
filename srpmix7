@@ -2241,7 +2241,8 @@ i_podman-srpm-expand_help()
     =printf "%s\\\\\n" "$SELF podman-srpm-expand [OPTIONS] DISTRO SRPM DISTDIR "
     echo "OPTIONS:"
     {
-	echo "	--dont-overwrite|-a if-successful[:status]|if-existing[:status]"
+	echo "	--dont-overwrite|-a force-overwrite|if-successful[:status]|if-existing[:status]"
+	echo "		default: if-successful:0"
 	echo "  --overwrite-even-if-incomplete"
     }
 }
@@ -2249,8 +2250,8 @@ i_podman-srpm-expand_help()
 i_podman-srpm-expand_run()
 {
     local c=${${0#i_}%_run}
-    local dont_overwrite
-    local dont_overwrite_status
+    local dont_overwrite=if-existing
+    local dont_overwrite_status=0
     local overwrite_even_if_incomplete
 
     while [[ $# -gt 0 ]]; do
@@ -2267,6 +2268,10 @@ i_podman-srpm-expand_run()
 		;;
 	    (--dont-overwrite|-a)
 		case "$2" in
+		    (force-overwrite)
+			dont_overwrite=
+			dont_overwrite_status=
+			;;
 		    (if-successful|if-existing)
 			dont_overwrite=${2}
 			dont_overwrite_status=0
