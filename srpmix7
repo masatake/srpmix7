@@ -2100,17 +2100,17 @@ i_podman-srpm-pkglist_run()
 
     local distro=$1
     if [[ -z "$distro" ]]; then
-	-E- "DISTRO is not given in command line"
+	-E- "$c: DISTRO is not given in command line"
     fi
 
     if ! podman_has_image srpmix7-${distro}; then
-	-E%- "no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
+	-E%- "$c: no container image for %s (%s)" "${distro}" "srpmix7-${distro}"
     fi
 
     local stype=$(podman inspect  --format "{{range .Config.Env}}{{println .}}{{end}}" srpmix7-${distro} \
 		      | sed -n -e 's/SRPMIX_STYPE=\(.*\)/\1/p')
     if [[ -z "$stype" ]]; then
-	-E%- "no stype (SRPMIX_STYPE) in image %s" "srpmix7-${distro}"
+	-E%- "$c: no stype (SRPMIX_STYPE) in image %s" "srpmix7-${distro}"
     fi
 
     case "$stype" in
@@ -2144,7 +2144,7 @@ i_podman-srpm-pkglist_run()
 		| sort -u
 	    ;;
 	(*)
-	    -E- "list operatoin is not supported in $stype stype"
+	    -E- "$c: list operatoin is not supported in $stype stype"
 	    ;;
     esac
 }
