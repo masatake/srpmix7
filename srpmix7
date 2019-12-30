@@ -2409,7 +2409,7 @@ i_podman-srpm-expand_run()
 
 	    {
 		podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
-		       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
+		       srpmix7 expand --use-var-tmp --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
 
 		podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro} ${pkg}
 		local s=$?
@@ -2536,6 +2536,7 @@ i_expand_help()
 	echo "	--help-expander=EXPANDER"
 	echo "	--help-stype=STYPE"
 	echo "	--help-dtype=DTYPE"
+	echo "  --use-var-tmp"
 	echo "	--hookdir=DIR"
     }
     echo "STYPE:"
@@ -2608,6 +2609,8 @@ i_expand_run()
     local t
     local s
     local r
+
+    local tmp_root=${TMPDIR:-/tmp}
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -2734,6 +2737,10 @@ i_expand_run()
 		set -x
 		shift
 		;;
+	    (--use-var-tmp)
+		tmp_root=/var/tmp
+		shift
+		;;
 	    (--*)
 		: ${expander:=${expander_default}}
 		break
@@ -2846,7 +2853,7 @@ i_expand_run()
     #       if not expanded yet, lock the directory.
     #
     {
-	if ! t=$(mktemp --tmpdir --directory ${SELF}-EXPAND-${expander}.XXXXXXXXXX) ; then
+	if ! t=$(mktemp --tmpdir="${tmp_root}" --directory ${SELF}-EXPAND-${expander}.XXXXXXXXXX) ; then
 	    throw Creation
 	elif [[ "${debug}" == "yes" ]]; then
 	    echo tmpdir: $t
