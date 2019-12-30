@@ -2408,7 +2408,7 @@ i_podman-srpm-expand_run()
 	    local tmpdir=$(mktemp -p ${ddir}/_expand -d --suffix=srpmix7-$c--${distro})
 
 	    {
-		podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
+		podman run --name=${pkg}--${distro} --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
 		       srpmix7 expand --use-var-tmp --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
 
 		podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro} ${pkg}
