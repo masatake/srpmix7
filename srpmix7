@@ -22,7 +22,7 @@
 #
 readonly prefix=srpmix7
 readonly PREFIX=${(U)prefix}
-readonly SELF_FULL=$0
+readonly SELF_FULL=$(/usr/bin/realpath $0)
 readonly SELF=$0:t
 readonly c_version=7.0.0
 readonly UCTAGS=${UCTAGS:-~/bin/u-ctags}
