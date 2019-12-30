@@ -2404,7 +2404,8 @@ i_podman-srpm-expand_run()
 	    esac
 
 	    mkdir -p ${ddir}/sources
-	    local tmpdir=$(mktemp -d --suffix=srpmix7-$c--${distro})
+	    mkdir -p ${ddir}/_expand
+	    local tmpdir=$(mktemp -p ${ddir}/_expand -d --suffix=srpmix7-$c--${distro})
 
 	    {
 		podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
