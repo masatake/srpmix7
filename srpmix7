@@ -2065,7 +2065,7 @@ ICMD+=podman-srpm-pkglist
 ICMD_DESC[podman-srpm-pkglist]="list packages"
 i_podman-srpm-pkglist_help()
 {
-    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist [--build-args] DISTRO"
+    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist [--build-args=DISTDIR] DISTRO"
 }
 
 i_podman-srpm-pkglist_run()
@@ -2086,8 +2086,11 @@ i_podman-srpm-pkglist_run()
 		set -- "$opt" "$next" "$@"
 		;;
 	    (--build-args)
-		build_args=1
-		shift 1
+		if [[ -z "$2" ]]; then
+		    -E- "$c: DISTDIR for --build-args is not given"
+		fi
+		build_args=$2
+		shift 2
 		;;
 	    (-*)
 		-E- "$c: unknown option: $1"
@@ -2117,13 +2120,13 @@ i_podman-srpm-pkglist_run()
 	(dds)
 	    local fmt
 	    if [[ -n "${build_args}" ]]; then
-		fmt="${distro}"' \1-\2'
+		fmt="${distro}"' \1-\2 '"${build_args}"
 	    else
 		fmt='\1 \2'
 	    fi
 	    podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
 		| grep -v '^Available Packages.*' \
-		| sed -n -s 's/^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)/'"${fmt}"'/p' \
+		| sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\)|'"${fmt}"'|p' \
 		| sort -u
 
 	    ;;
@@ -2135,7 +2138,7 @@ i_podman-srpm-pkglist_run()
 		    local nvr
 		    if [[ -n "${build_args}" ]]; then
 			while read nvr; do
-			    echo "${distro} ${nvr}"
+			    echo "${distro} ${nvr}" "${build_args}"
 			done
 		    else
 			split_n_vr_filter
