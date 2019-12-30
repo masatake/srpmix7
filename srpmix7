@@ -94,7 +94,6 @@ readonly -x P_dists=dists
 #
 # Rearrange zsh behavior
 #
-set -e
 enable -r repeat
 setopt EXTENDED_GLOB
 autoload -Uz catch
@@ -1044,7 +1043,6 @@ i_bundle_run()
 	fi
     fi
 
-    set +e
     {
 	local t
 
@@ -1096,7 +1094,6 @@ i_bundle_run()
 	    rm -rf "$t"
 	fi
     }
-    set -e
 
     return $r
 }
@@ -1635,7 +1632,6 @@ d_dir_deploy()
 	    continue
 	fi
 
-	set +e
 	{
 	    integer -l destfd
 	    local s=${dest}/${p_status}
@@ -1696,7 +1692,6 @@ d_dir_deploy()
 		unlock $destfd
 	    fi
 	}
-	set -e
     done
 
     return 0
@@ -2367,7 +2362,6 @@ i_podman-srpm-expand_run()
     mkdir -p ${ddir}/sources
     local tmpdir=$(mktemp -d --suffix=srpmix7-$c--${distro})
 
-    set +e
     {
 	podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
 	       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
@@ -2375,7 +2369,6 @@ i_podman-srpm-expand_run()
 	podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro} ${pkg}
 	local s=$?
     }
-    set -e
     return $s
 }
 
@@ -2825,7 +2818,6 @@ i_expand_run()
 	    exit 0
 	fi
 
-	set +e
 	hookarg=
 	if x_use_stype_hook_p ${stype}; then
 	    hookarg="--hookdir=$hookdir"
@@ -2839,10 +2831,7 @@ i_expand_run()
 	else
 	    throw STransfer
 	fi
-	set -e
 
-
-	set +e
 	hookarg=
 	if x_use_expander_hook_p ${expander}; then
 	    hookarg="--hookdir=$hookdir"
@@ -2859,7 +2848,6 @@ i_expand_run()
 	    x_expand_${expander}_run  $t/$p_stmp "$t" $hookarg "$@"
 	fi
 	s=$?
-	set -e
     } always {
 	local delayed_emsg
 
@@ -3734,7 +3722,6 @@ x_expand_srpm_run()
     done
 
     if [[ -z "${nobuilddep}" ]]; then
-	set +e
 	{
 	    x_run_expander_hook_maybe "$hookdir" srpm before-builddep
 	    if rpm -q dnf-plugins-core > /dev/null 2>&1; then
@@ -3750,7 +3737,6 @@ x_expand_srpm_run()
 	    echo $s > "$t/$p_log/x_srpm-builddep.status"
 	    x_run_expander_hook_maybe "$hookdir" srpm after-builddep
 	} > "$t/$p_log/x_srpm-builddep.log" 2>&1
-	set -e
     fi
 
     {
@@ -3809,7 +3795,6 @@ x_expand_srpm_run()
 	fi
     }
 
-    set -e
     if [[ -f "$t/$p_log/x_srpm-rpmbuild-bp.log" ]]; then
 	x_expand_srpm_clean_patch_backup_files "$t/$p_pre_build" "$t/$p_log/x_srpm-rpmbuild-bp.log" \
 					       > "$t/$p_log/x_srpm-clean-patch-backupfile.log"
@@ -3820,7 +3805,6 @@ x_expand_srpm_run()
 
     # x_expand_srpm_owner
 
-    set +e
     return $s
 }
 
