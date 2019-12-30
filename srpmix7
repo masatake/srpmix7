@@ -1908,6 +1908,18 @@ COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
 '
 
+podman_load_distros()
+{
+    local c
+    for c in /etc/srpmix7/distro.d/*.distro(N) ~/.srpmix7/distro.d/*.distro(N); do
+	if [[ ! -r "$c" ]]; then
+	    continue
+	fi
+	source "$c"
+    done
+}
+podman_load_distros
+
 ICMD+=podman-image-build
 ICMD_DESC[podman-image-build]="build container image for expanding source code"
 
