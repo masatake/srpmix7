@@ -2263,6 +2263,7 @@ i_podman-srpm-expand_help()
 	echo "	--dont-overwrite|-a force-overwrite|if-successful[:status]|if-existing[:status]"
 	echo "		default: if-successful:0"
 	echo "  --overwrite-even-if-incomplete"
+	echo "	--xargs=ENVVAR"
     }
 }
 
@@ -2272,6 +2273,7 @@ i_podman-srpm-expand_run()
     local dont_overwrite=if-existing
     local dont_overwrite_status=0
     local overwrite_even_if_incomplete
+    local xargs
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -2308,6 +2310,13 @@ i_podman-srpm-expand_run()
 	    (--overwrite-even-if-incomplete)
 		overwrite_even_if_incomplete=1
 		shift 1
+		;;
+	    (--xargs)
+		xargs=$2
+		if [[ -z "${(P)xargs}" ]]; then
+		    -E- "$C: value for ${xargs} is not given"
+		fi
+		shift 2
 		;;
 	    (-*)
 		-E- "$c: unknown option: $1"
@@ -2352,48 +2361,66 @@ i_podman-srpm-expand_run()
 	-E%- "no expander (SRPMIX_EXPANDER) in image %s" "srpmix7-${distro}"
     fi
 
-    echo -n "expanding $pkg of $distro..."
+    local msgout=/dev/stdout
 
-    local n pkgname vr expected_dd
-    n=$(name_prefix "${pkg}")
-    read name ver_rel <<< $(split_n_vr ${pkg})
-    expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
-
-    case "${dont_overwrite}" in
-	(if-existing)
-	    if [[ -e ${expected_dd}/${p_successful} ]]; then
-		mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-		touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-		echo "existing as SUCCESSFUL: ${expected_dd}"
-		return ${dont_overwrite_status}
-	    elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
-		mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-		touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-		echo "existing as INCOMPLETE: ${expected_dd}"
-		return ${dont_overwrite_status}
-	    fi
-	    ;;
-	(if-successful)
-	    if [[ -e ${expected_dd}/${p_successful} ]]; then
-		mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-		touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-		echo "existing as SUCCESSFUL:  ${expected_dd}"
-		return ${dont_overwrite_status}
-	    fi
-	    ;;
-    esac
-
-    mkdir -p ${ddir}/sources
-    local tmpdir=$(mktemp -d --suffix=srpmix7-$c--${distro})
+    if [[ -n "${xargs}" ]]; then
+	mkdir -p ${ddir}/_xargs
+	msgout=${ddir}/_xargs/${(P)xargs}.cpuid
+	# printf "srpmix7 (%s) " "$c" > "$msgout"
+	echo -n "srpmix7 " > "$msgout"
+    fi
 
     {
-	podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
-	       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
+	{
+	    echo -n "expanding $pkg of $distro..."
 
-	podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro} ${pkg}
-	local s=$?
+	    local n pkgname vr expected_dd
+	    n=$(name_prefix "${pkg}")
+	    read name ver_rel <<< $(split_n_vr ${pkg})
+	    expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
+
+	    case "${dont_overwrite}" in
+		(if-existing)
+		    if [[ -e ${expected_dd}/${p_successful} ]]; then
+			mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+			touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+			echo "existing as SUCCESSFUL: ${expected_dd}"
+			return ${dont_overwrite_status}
+		    elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
+			mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+			touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+			echo "existing as INCOMPLETE: ${expected_dd}"
+			return ${dont_overwrite_status}
+		    fi
+		    ;;
+		(if-successful)
+		    if [[ -e ${expected_dd}/${p_successful} ]]; then
+			mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+			touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+			echo "existing as SUCCESSFUL:  ${expected_dd}"
+			return ${dont_overwrite_status}
+		    fi
+		    ;;
+	    esac
+
+	    mkdir -p ${ddir}/sources
+	    local tmpdir=$(mktemp -d --suffix=srpmix7-$c--${distro})
+
+	    {
+		podman run --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
+		       srpmix7 expand --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
+
+		podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro} ${pkg}
+		local s=$?
+	    }
+	    return $s
+	} >> $msgout
+    } always {
+	if [[ -n "${xargs}" ]]; then
+	    logger --file "${msgout}"
+	    rm "${msgout}"
+	fi
     }
-    return $s
 }
 
 podman_has_image()
