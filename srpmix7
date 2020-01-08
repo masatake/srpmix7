@@ -2133,21 +2133,30 @@ i_podman-srpm-pkglist_run()
 		    | grep -v '^Available Packages.*' \
 		    | sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
 		    | sort -u
-
 		;;
 	    (yds)
+		local -A nvr2e
+		local nvr n vr epoch
+		while read nvr epoch; do
+		    nvr2e["$nvr"]="$epoch";
+		done < <(podman run --rm srpmix7-"${distro}" repoquery \
+			 -q -a --show-duplicates \
+			 --queryformat "%{name}-%{version}-%{release} %{epoch}" | sort -u)
 		podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
 		    | sed -e 's/\(.*\).src.rpm.*$/\1/' \
-		    | {
-			local nvr
-			if [[ -n "${expand_args}" ]]; then
-			    while read nvr; do
-				echo "${distro} ${nvr}" "${expand_args}"
-			    done
-			else
-			    split_n_vr_filter
-			fi
-		    } | sort -u
+		    | { while read nvr; do
+			    epoch=${nvr2e["$nvr"]}
+			    read n vr <<<$(split_n_vr ${nvr})
+			    if [[ -n "$epoch" && "$epoch" != 0 ]]; then
+				vr="${epoch}:${vr}"
+			    fi
+
+			    if [[ -n "${expand_args}" ]]; then
+				echo "${distro} ${n}-${vr} ${expand_args}"
+			    else
+				echo "${n} ${vr}"
+			    fi
+			done } | sort -u
 		;;
 	    (*)
 		-E- "$c: list operatoin is not supported in $stype stype"
