@@ -2174,19 +2174,37 @@ split_n_vr()
     n=${V%%-[0-9]*}
     vr=${V:((${#n} + 1))}
 
-    echo $n $vr
+    if [[ -n "$2" ]]; then
+	echo ${2}-${n} $vr
+    else
+	echo $n $vr
+    fi
 }
 
-split_n_vr_filter()
+split_by_hyphen()
 {
-    local distro=$1
-    local V
-    while read V; do
-	if [[ -n "$distro" ]]; then
-	    echo -n "${distro} "
-	fi
-	split_n_vr "$V"
-    done
+    local V=$1
+    local prefix=$2
+
+    local V=$1
+    local n vr
+    n=${V%%-*}
+    vr=${V:((${#n} + 1))}
+
+    if [[ -n "$2" ]]; then
+	echo ${2}-${n} $vr
+    else
+	echo $n $vr
+    fi
+}
+
+split_n_vr_combinations()
+{
+    read n vr <<<$(split_by_hyphen $1 $2)
+    if [[ -n "$vr" ]]; then
+	echo $n $vr
+	split_n_vr_combinations $vr $n
+    fi
 }
 
 #
@@ -2396,33 +2414,36 @@ i_podman-srpm-expand_run()
 	    local n=$(name_prefix "${pkg}")
 	    local name ver_rel
 
-	    read name ver_rel <<< $(split_n_vr ${pkg})
-	    if [[ -n "${ver_rel}" ]]; then
-		local expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
-		case "${dont_overwrite}" in
-		    (if-existing)
-			if [[ -e ${expected_dd}/${p_successful} ]]; then
-			    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-			    touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-			    echo "existing as SUCCESSFUL: ${expected_dd}"
-			    return ${dont_overwrite_status}
-			elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
-			    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-			    touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-			    echo "existing as INCOMPLETE: ${expected_dd}"
-			    return ${dont_overwrite_status}
-			fi
-			;;
-		    (if-successful)
-			if [[ -e ${expected_dd}/${p_successful} ]]; then
-			    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-			    touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
-			    echo "existing as SUCCESSFUL:  ${expected_dd}"
-			    return ${dont_overwrite_status}
-			fi
-			;;
-		esac
-	    fi
+	    while read name ver_rel; do
+		if [[ -n "${ver_rel}" ]]; then
+		    local expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
+		    case "${dont_overwrite}" in
+			(if-existing)
+			    if [[ -e ${expected_dd}/${p_successful} ]]; then
+				mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+				touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+				echo "existing as SUCCESSFUL: ${expected_dd}"
+				return ${dont_overwrite_status}
+			    elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
+				mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+				touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+				echo "existing as INCOMPLETE: ${expected_dd}"
+				return ${dont_overwrite_status}
+			    fi
+			    ;;
+			(if-successful)
+			    if [[ -e ${expected_dd}/${p_successful} ]]; then
+				mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+				touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+				echo "existing as SUCCESSFUL:  ${expected_dd}"
+				return ${dont_overwrite_status}
+			    fi
+			    ;;
+		    esac
+		else
+		    break
+		fi
+	    done  <<< $(split_n_vr_combinations ${pkg})
 
 	    mkdir -p ${ddir}/sources
 	    mkdir -p ${ddir}/_expand
