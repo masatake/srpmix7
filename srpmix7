@@ -1807,6 +1807,7 @@ DISTRO_docker_files[fedora31]='
 FROM docker.io/library/fedora:31
 RUN dnf -y install zsh rpm-build dnf-plugins-core
 RUN dnf -y install gcc annobin
+RUN dnf -y install git
 
 #include "srpmix7.dockerfile"
 
