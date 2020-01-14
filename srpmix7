@@ -2426,9 +2426,11 @@ i_podman-srpm-expand_run()
 	    mkdir -p ${ddir}/sources
 	    mkdir -p ${ddir}/_expand
 	    local tmpdir=$(mktemp --tmpdir=${ddir}/_expand -d --suffix=srpmix7-$c--${distro})
-
+	    local container_name=${${pkg/:/__}/+/__}
+	    # Jan 14 18:18:53 srpmix7.localhost srpmix7[17460]: Error: error running container create option: names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: invalid argument
+	    # Jan 14 18:18:53 srpmix7.localhost root[1703]: srpmix7 expanding dvd+rw-tools-7.1-15.el7 of rhel7...error: /home/srpmix7/_errors/tmp.IJYz4HlAPGsrpmix7-podman-srpm-expand--rhel7__dvd+rw-tools-7.1-15.el7
 	    {
-		podman run --name=${pkg/:/__}--${distro} --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
+		podman run --name=${container_name}--${distro} --rm --volume ${tmpdir}:/out:z  srpmix7-"${distro}" \
 		       srpmix7 expand --use-var-tmp --hookdir=/hooks --stype=${stype} --sloc=$pkg --dtype=dir --dloc=/out ${expander}
 
 		podman_publish_maybe "${overwrite_even_if_incomplete}" ${ddir} ${tmpdir} ${expander} ${distro} ${pkg}
