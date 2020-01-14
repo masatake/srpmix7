@@ -2137,12 +2137,13 @@ i_podman-srpm-pkglist_run()
 		;;
 	    (yds)
 		local -A nvr2e
-		local nvr n vr epoch
-		while read nvr epoch; do
-		    nvr2e["$nvr"]="$epoch";
+		local srpm nvr n vr epoch
+		while read srpm epoch; do
+		    nvr2e[$(sed -e 's/\(.*\).src.rpm.*$/\1/'<<<"$srpm")]="$epoch";
 		done < <(podman run --rm srpmix7-"${distro}" repoquery \
 			 -q -a --show-duplicates \
-			 --queryformat "%{name}-%{version}-%{release} %{epoch}" | sort -u)
+			 --queryformat "%{sourcerpm} %{epoch}" | sort -u)
+
 		podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
 		    | sed -e 's/\(.*\).src.rpm.*$/\1/' \
 		    | { while read nvr; do
