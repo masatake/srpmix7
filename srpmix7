@@ -2146,7 +2146,7 @@ i_podman-srpm-pkglist_run()
 		podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
 		    | sed -e 's/\(.*\).src.rpm.*$/\1/' \
 		    | { while read nvr; do
-			    epoch=${nvr2e["$nvr"]}
+			    epoch=${nvr2e[$nvr]}
 			    read n vr <<<$(split_n_vr ${nvr})
 			    if [[ -n "$epoch" && "$epoch" != 0 ]]; then
 				vr="${epoch}:${vr}"
