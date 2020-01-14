@@ -3034,11 +3034,51 @@ i_expand_run()
 		$checker "${slocs_local[1]}"
 	    fi
 	    x_expand_${expander}_run "${slocs_local[1]}" "$t" $hookarg "$@"
+	elif [[ ${stype} == yds || ${stype} == dds ]]; then
+	    #
+	    # In rhel7 one yumdownloader invocation downloads two src.rpm files:
+	    #
+	    # [root@6a854e92b2d9 tmp]# yumdownloader --source shim-0.7-8.el7_0
+	    # Loaded plugins: ovl, product-id, subscription-manager
+	    # Enabling ubi-server-rhscl-7-source-rpms repository
+	    # Enabling ubi-7-server-optional-source-rpms repository
+	    # Enabling ubi-7-rhah-source repository
+	    # Enabling ubi-7-server-extras-source-rpms repository
+	    # Enabling ubi-7-server-devtools-source-rpms repository
+	    # Enabling rhel-7-server-htb-source-rpms repository
+	    # (1/2): shim-0.7-8.el7_0.src.rpm        | 1.1 MB  00:00:00
+	    # (2/2): shim-signed-0.7-8.el7_0.src.rpm | 406 kB  00:00:00
+	    #
+	    # We have to choose proper one from them.
+	    #
+	    local sloc_candidate
+	    local found_proper_sloc
+	    for sloc_candidate in "${slocs_local[@]}"; do
+		if [[ $(basename "${sloc_candidate}") == "${sloc}.src.rpm" ]]; then
+		    found_proper_sloc=1
+		    x_expand_${expander}_run "${sloc_candidate}" "$t" $hookarg "$@"
+		    s=$?
+		    break
+		fi
+	    done
+	    if [[ -z "${found_proper_sloc}" ]]; then
+		for sloc_candidate in "${slocs_local[@]}"; do
+		    if [[ $(basename "${sloc_candidate}") =~ "${sloc}"'-[0-9].*\.src\.'rpm ]]; then
+			found_proper_sloc=1
+			x_expand_${expander}_run "${sloc_candidate}" "$t" $hookarg "$@"
+			s=$?
+			break
+		    fi
+		done
+	    fi
+	    if [[ -z "${found_proper_sloc}" ]]; then
+		throw STransferMultiple
+	    fi
 	else
 	    # Passing the temporary directory
 	    x_expand_${expander}_run  $t/$p_stmp "$t" $hookarg "$@"
+	    s=$?
 	fi
-	s=$?
     } always {
 	local delayed_emsg
 
@@ -3058,6 +3098,14 @@ i_expand_run()
 	    else
 		delayed_emsg="$c: failed to prepare a directory for expansion"
 	    fi
+	elif catch STransferMultiple; then
+	    r=1
+	    if [[ "$action_when_error" == continue ]]; then
+		echo "$s_bug" "(transfer multiple files from $sloc to $t by $stype)\n" > $t/.$p_status
+		    ln -f -s -r $t/$p_status $t/$p_bug
+		else
+		    delayed_emsg="$c: transfer multiple files from $sloc to $t by $stype"
+		fi
 	else
 
 	    if catch STransfer; then
