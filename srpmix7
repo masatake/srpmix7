@@ -2138,18 +2138,25 @@ i_podman-srpm-pkglist_run()
 		;;
 	    (yds)
 		local -A nvr2e
+		local -A nvr2n
+		local -A nvr2vr
 		local srpm nvr n vr epoch
-		while read srpm epoch; do
-		    nvr2e[$(sed -e 's/\(.*\).src.rpm.*$/\1/'<<<"$srpm")]="$epoch";
+		while read srpm vr epoch; do
+		    nvr=$(sed -e 's/\(.*\).src.rpm.*$/\1/'<<<"$srpm")
+		    nvr2e[$nvr]="$epoch";
+		    nvr2n[$nvr]=${nvr:0:$(($#nvr - $#vr - 1))}
+		    nvr2vr[$nvr]="$vr"
 		done < <(podman run --rm srpmix7-"${distro}" repoquery \
 			 -q -a --show-duplicates \
-			 --queryformat "%{sourcerpm} %{epoch}" | sort -u)
+			 --queryformat "%{sourcerpm} %{version}-%{release} %{epoch}" | sort -u)
 
 		podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
 		    | sed -e 's/\(.*\).src.rpm.*$/\1/' \
 		    | { while read nvr; do
 			    epoch=${nvr2e[$nvr]}
-			    read n vr <<<$(split_n_vr ${nvr})
+			    n=${nvr2n[$nvr]}
+			    vr=${nvr2vr[$nvr]}
+
 			    if [[ -n "$epoch" && "$epoch" != 0 ]]; then
 				vr="${epoch}:${vr}"
 			    fi
@@ -2166,20 +2173,6 @@ i_podman-srpm-pkglist_run()
 		;;
 	esac
     done
-}
-
-split_n_vr()
-{
-    local V=$1
-    local n vr
-    n=${V%%-[0-9]*}
-    vr=${V:((${#n} + 1))}
-
-    if [[ -n "$2" ]]; then
-	echo ${2}-${n} $vr
-    else
-	echo $n $vr
-    fi
 }
 
 split_by_hyphen()
