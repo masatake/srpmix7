@@ -2505,6 +2505,9 @@ podman_publish_maybe()
     local ver=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_VERSION)
     local rel=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_RELEASE)
     local epoch=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_EPOCH)
+    if [[ -z "${epoch}" && -r "${tmp_srcdir}/${p_info}"/srpm_query_EPOCHNUM ]]; then
+	epoch=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_EPOCHNUM)
+    fi
 
     local n=$(name_prefix "${name}")
     local dtail
