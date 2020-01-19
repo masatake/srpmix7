@@ -2512,7 +2512,7 @@ podman_publish_maybe()
     local n=$(name_prefix "${name}")
     local dtail
 
-    if [[ -n "${epoch}" ]]; then
+    if [[ -n "${epoch}" && "$epoch" != 0 ]]; then
 	dtail=${epoch}:${ver}-${rel}--${expander}
     else
 	dtail=${ver}-${rel}--${expander}
