@@ -2653,7 +2653,11 @@ i_podman-srpm-deploy_run()
 	fi
     done
 
+    # fmt= line is injected when rhel8 rhel7 fedora31 are specified.
+    # I wonder where the noise comes from. grep -v in this
+    # cmd pipeline is for removing the noise.
     ${SELF_FULL} podman-srpm-pkglist --expand-args="${odir}" "$@" \
+	| grep -v '^fmt=' \
 	| xargs --process-slot-var=CPUID \
 		-P "${procs}" \
 		-n 3 \
