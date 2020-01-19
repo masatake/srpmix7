@@ -3653,15 +3653,17 @@ x_src_yds_transfer()
 	    (\[*\]*)
 		pname=${sloc#\[*\]}
 		repo=${${sloc%\]*}[2,-1]}
+		local pname_no_epoch=$(sed -e 's/\(.*\)-[0-9]\+:\(.*\)/\1-\2/'<<<"$pname")
 		if [[ -z "$hookdir" ]]; then
-		    yumdownloader --source --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
+		    yumdownloader --source --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname_no_epoch
 		else
-		    yumdownloader --source --destdir ${t}/$p_stmp --enablerepo "$repo" $pname
+		    yumdownloader --source --destdir ${t}/$p_stmp --enablerepo "$repo" $pname_no_epoch
 		fi
 		s=$?
 		;;
 	    (*)
-		yumdownloader --source --destdir ${t}/$p_stmp $sloc
+		local sloc_no_epoch=$(sed -e 's/\(.*\)-[0-9]\+:\(.*\)/\1-\2/'<<<"$sloc")
+		yumdownloader --source --destdir ${t}/$p_stmp $sloc_no_epoch
 		s=$?
 		;;
 	esac
