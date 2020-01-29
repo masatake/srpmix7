@@ -3060,6 +3060,7 @@ i_expand_run()
 		$checker "${slocs_local[1]}"
 	    fi
 	    x_expand_${expander}_run "${slocs_local[1]}" "$t" $hookarg "$@"
+	    s=$?
 	elif [[ ${stype} == yds || ${stype} == dds ]]; then
 	    #
 	    # In rhel7 one yumdownloader invocation downloads two src.rpm files:
