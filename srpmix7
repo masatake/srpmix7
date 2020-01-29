@@ -2134,31 +2134,57 @@ i_podman-srpm-pkglist_run()
 		podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
 		    | grep -v '^Available Packages.*' \
 		    | sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
+	            | trim_epoch \
 		    | sort -u
 		;;
 	    (yds)
-		local -A nvr2e
+		#
+		# dnf prints the name and version-release of a SOURCE package separately.
+		# repoquery doesn't for SOURCE packages.
+		# heuristics are needed.
+		#
+		# repoquery does for BINARY packages.
+		# We use the output for BINARY packages as hints.
+		#
+		# Two associative arrays are made from hits:
+		#
+		# nvr2n
+		#     map from name-version-release to name
+		# nvr2vr
+		#     map from name-version-release to version-release.
+		#
 		local -A nvr2n
 		local -A nvr2vr
-		local srpm nvr n vr epoch
-		while read srpm vr epoch; do
-		    nvr=$(sed -e 's/\(.*\).src.rpm.*$/\1/'<<<"$srpm")
-		    nvr2e[$nvr]="$epoch";
-		    nvr2n[$nvr]=${nvr:0:$(($#nvr - $#vr - 1))}
-		    nvr2vr[$nvr]="$vr"
+		local srpm nvr n vr
+		while read srpm n vr; do
+		    nvr=$(sed -e 's/\(.*\)\.src\.rpm.*$/\1/'<<<"$srpm")
+		    case "$nvr" in
+			*-$vr)
+			    # If the vr part of a binary package matches the
+			    # name of srpm, we can use the vr as a hint.
+			    # With the hint, we split the name of the srpm
+			    # into n and vr parts.
+			    nvr2vr[$nvr]="$vr"
+			    nvr2n[$nvr]=${nvr%-$vr}
+			    ;;
+		    esac
 		done < <(podman run --rm srpmix7-"${distro}" repoquery \
 			 -q -a --show-duplicates \
-			 --queryformat "%{sourcerpm} %{version}-%{release} %{epoch}" | sort -u)
+			 --queryformat "%{sourcerpm} %{name} %{version}-%{release}" | sort -u)
 
 		podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
-		    | sed -e 's/\(.*\).src.rpm.*$/\1/' \
+		    | sort -u \
+		    | sed -e 's/\(.*\)\.src\.rpm.*$/\1/' \
 		    | { while read nvr; do
-			    epoch=${nvr2e[$nvr]}
 			    n=${nvr2n[$nvr]}
 			    vr=${nvr2vr[$nvr]}
 
-			    if [[ -n "$epoch" && "$epoch" != 0 ]]; then
-				vr="${epoch}:${vr}"
+			    if [[ -z "$n" ]]; then
+				-W- "cannot resolve name for $nvr"
+			    fi
+
+			    if [[ -z "$vr" ]]; then
+				-W- "cannot resolve version-release for $nvr"
 			    fi
 
 			    if [[ -n "${expand_args}" ]]; then
@@ -2166,13 +2192,24 @@ i_podman-srpm-pkglist_run()
 			    else
 				echo "${n} ${vr}"
 			    fi
-			done } | sort -u
+			done }
 		;;
 	    (*)
 		-E- "$c: list operatoin is not supported in $stype stype"
 		;;
 	esac
     done
+}
+
+trim_epoch()
+{
+    local p='s|\(-\?\)[0-9]\+:|\1|'
+
+    if [ -n "$1" ]; then
+	echo "$1"
+    else
+	cat
+    fi | sed -e "$p"
 }
 
 split_by_hyphen()
@@ -2192,12 +2229,12 @@ split_by_hyphen()
     fi
 }
 
-split_n_vr_combinations()
+generate_n_vr_combinations()
 {
     read n vr <<<$(split_by_hyphen $1 $2)
     if [[ -n "$vr" ]]; then
 	echo $n $vr
-	split_n_vr_combinations $vr $n
+	generate_n_vr_combinations $vr $n
     fi
 }
 
@@ -2401,6 +2438,7 @@ i_podman-srpm-expand_run()
 	echo -n "srpmix7 " > "$msgout"
     fi
 
+    pkg=$(trim_epoch "$pkg")
     {
 	{
 	    echo -n "expanding $pkg of $distro..."
@@ -2437,7 +2475,7 @@ i_podman-srpm-expand_run()
 		else
 		    break
 		fi
-	    done  <<< $(split_n_vr_combinations ${pkg})
+	    done  <<< $(generate_n_vr_combinations ${pkg})
 
 	    local date=$(date --rfc-3339=date)
 	    mkdir -p ${ddir}/sources
@@ -2497,19 +2535,11 @@ podman_publish_maybe()
     local name=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_NAME)
     local ver=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_VERSION)
     local rel=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_RELEASE)
-    local epoch=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_EPOCH)
-    if [[ -z "${epoch}" && -r "${tmp_srcdir}/${p_info}"/srpm_query_EPOCHNUM ]]; then
-	epoch=$(cat "${tmp_srcdir}/${p_info}"/srpm_query_EPOCHNUM)
-    fi
 
     local n=$(name_prefix "${name}")
     local dtail
 
-    if [[ -n "${epoch}" && "$epoch" != 0 ]]; then
-	dtail=${epoch}:${ver}-${rel}--${expander}
-    else
-	dtail=${ver}-${rel}--${expander}
-    fi
+    dtail=${ver}-${rel}--${expander}
 
     local d=${destdir}/sources/${n}/${name}
     local dd=${d}/${dtail}
@@ -3130,9 +3160,9 @@ i_expand_run()
 	    if [[ "$action_when_error" == continue ]]; then
 		echo "$s_bug" "(transfer multiple files from $sloc to $t by $stype)\n" > $t/.$p_status
 		    ln -f -s -r $t/$p_status $t/$p_bug
-		else
-		    delayed_emsg="$c: transfer multiple files from $sloc to $t by $stype"
-		fi
+	    else
+		delayed_emsg="$c: transfer multiple files from $sloc to $t by $stype"
+	    fi
 	else
 
 	    if catch STransfer; then
@@ -3645,19 +3675,18 @@ x_src_yds_transfer()
 	x_run_stype_hook_maybe "$hookdir" yds before-download
 	case "$sloc" in
 	    (\[*\]*)
-		pname=${sloc#\[*\]}
+		pname=$(trim_epoch ${sloc#\[*\]})
 		repo=${${sloc%\]*}[2,-1]}
-		local pname_no_epoch=$(sed -e 's/\(.*\)-[0-9]\+:\(.*\)/\1-\2/'<<<"$pname")
 		if [[ -z "$hookdir" ]]; then
-		    yumdownloader --source --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname_no_epoch
+		    yumdownloader --source --destdir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
 		else
-		    yumdownloader --source --destdir ${t}/$p_stmp --enablerepo "$repo" $pname_no_epoch
+		    yumdownloader --source --destdir ${t}/$p_stmp --enablerepo "$repo" $pname
 		fi
 		s=$?
 		;;
 	    (*)
-		local sloc_no_epoch=$(sed -e 's/\(.*\)-[0-9]\+:\(.*\)/\1-\2/'<<<"$sloc")
-		yumdownloader --source --destdir ${t}/$p_stmp $sloc_no_epoch
+		sloc=$(trim_epoch "$sloc")
+		yumdownloader --source --destdir ${t}/$p_stmp $sloc
 		s=$?
 		;;
 	esac
