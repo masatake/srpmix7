@@ -4031,7 +4031,7 @@ x_expand_srpm_run()
 		dnf builddep -y --allowerasing --skip-broken --nobest "${srpm}"
 		s=$?
 	    elif rpm -q yum-utils > /dev/null 2>&1; then
-		yum-builddep -y --skip-broken "${srpm}"
+		yum-builddep -y --skip-broken --setopt=protected_multilib=false "${srpm}"
 		s=$?
 	    else
 		echo "cannot find neither dnf-builddep nor yum-builddep"
