@@ -60,7 +60,13 @@ readonly -x p_uname=_uname
 readonly -x p_uname_version=$p_uname/version
 readonly -x p_log=_log
 readonly -x p_stmp=__src_tmp
-readonly -x p_xtmp=__expander_tmp
+#
+# Too long directory name for expander makes expanding the source
+# code of systemd failure; the long name makes command line
+# for applying patches with git am too long.
+#
+#readonly -x p_xtmp=__expander_tmp
+readonly -x p_xtmp=__x_T
 readonly -x p_bundle_status=_status
 readonly -x p_bundle_log=_log
 readonly -x p_bundle_uname=_uname
