@@ -2681,9 +2681,11 @@ i_podman-srpm-deploy_run()
 
     if [[ -z "${dont_rebuild_image}" ]]; then
 	for distro in "$@"; do
-	    i_podman-image-build_run "${distro}"
+	    if ! i_podman-image-build_run "${distro}"; then
+		-E- "$c: error in building image for ${distro} (in building)"
+	    fi
 	    if ! podman_has_image ${distro}; then
-		-E- "$c: error in building image for ${distro}"
+		-E- "$c: error in building image for ${distro} (in checking)"
 	    fi
 	done
     fi
