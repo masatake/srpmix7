@@ -2602,6 +2602,8 @@ i_podman-srpm-deploy_help()
 	echo "	--dont-rebuild-image|-B"
 	echo "	--dont-overwrite ..."
 	echo "		see also: $SELF podman-srpm-expand --help"
+	echo "  -u"
+	echo "		same as --dont-overwrite=if-successful:0"
     }
 }
 
@@ -2652,6 +2654,10 @@ i_podman-srpm-deploy_run()
 	    (--dont-overwrite)
 		dont_overwrite_option="--dont-overwrite=$2"
 		shift 2
+		;;
+	    (-u)
+		dont_overwrite_option="--dont-overwrite=if-successful:0"
+		shift 1
 		;;
 	    (-*)
 		-E- "$c: unknown option: $1"
