@@ -2335,7 +2335,7 @@ i_podman-srpm-expand_help()
     echo "OPTIONS:"
     {
 	echo "	--dont-overwrite|-a (force-overwrite|if-successful[:status]|if-existing[:status])"
-	echo "		default: if-successful:0"
+	echo "		default: if-existing:0"
 	echo "	--overwrite-even-if-incomplete"
 	echo "	--xargs=ENVVAR"
     }
