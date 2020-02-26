@@ -2598,7 +2598,7 @@ i_podman-srpm-deploy_help()
 	echo "	--output-directory|-o DIR"
 	echo "		default: /var/lib/srpmix7"
 	echo "	--procs|-n N"
-	echo "		default: $(expr 3 \* $(nproc --ignore=1))"
+	echo "		default: $(expr 2 \* $(nproc --ignore=1))"
 	echo "	--dont-rebuild-image|-B"
 	echo "	--dont-overwrite ..."
 	echo "		see also: $SELF podman-srpm-expand --help"
@@ -2611,7 +2611,7 @@ i_podman-srpm-deploy_run()
     local opt
     local next
     local odir=/var/lib/srpmix7
-    local procs=$(expr 3 \* $(nproc --ignore=1))
+    local procs=$(expr 2 \* $(nproc --ignore=1))
     local dont_rebuild_image
     local dont_overwrite_option
 
