@@ -2139,7 +2139,7 @@ i_podman-srpm-pkglist_run()
 		else
 		    fmt='\1 \2'
 		fi
-		podman run --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
+		podman run --name=dnf-list-"${distro}" --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
 		    | grep -v '^Available Packages.*' \
 		    | sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
 	            | trim_epoch \
@@ -2176,11 +2176,11 @@ i_podman-srpm-pkglist_run()
 			    nvr2n[$nvr]=${nvr%-$vr}
 			    ;;
 		    esac
-		done < <(podman run --rm srpmix7-"${distro}" repoquery \
+		done < <(podman run --name=repoquery-qf-"${distro}" --rm srpmix7-"${distro}" repoquery \
 			 -q -a --show-duplicates \
 			 --queryformat "%{sourcerpm} %{name} %{version}-%{release}" | sort -u)
 
-		podman run --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
+		podman run --name=repoquery-"${distro}" --rm srpmix7-"${distro}" repoquery -q -a -s --show-duplicates \
 		    | sort -u \
 		    | sed -e 's/\(.*\)\.src\.rpm.*$/\1/' \
 		    | { while read nvr; do
@@ -2302,12 +2302,12 @@ i_podman-srpm-repolist_run()
 
     case "$stype" in
 	(dds)
-	    podman run --rm srpmix7-"${distro}" dnf -q -C repolist --all \
+	    podman run --name=dnf-repolist-"${distro}" --rm srpmix7-"${distro}" dnf -q -C repolist --all \
 		| grep -v '^repo id' \
 		| cut -d ' ' -f 1
 	    ;;
 	(yds)
-	    podman run --rm srpmix7-"${distro}" yum -C repolist all \
+	    podman run --name=yum-repolist-"${distro}" --rm srpmix7-"${distro}" yum -C repolist all \
 		| grep -v '^Loaded plugins:.*' \
 		| grep -v '^Loading mirror speeds from cached hostfile.*' \
 		| grep -v '^ .*' \
