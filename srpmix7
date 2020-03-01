@@ -2541,11 +2541,13 @@ podman_publish_maybe()
 	msg=incomplete
 	r=1
     else
-	local derror=${destdir}/_errors/$(date --rfc-3339=date)
-	local derrortail=$(basename ${tmp_srcdir})
-	mkdir -p "${derror}"
-	mv "${tmp_srcdir}" "${derror}/${derrortail}"
-	echo "error: ${derror}/${derrortail}"
+	local derror=${destdir}/_errors
+	local dperror=${derror}/${pkg}
+	local dpderror=${dperror}/${distro}-$(date --rfc-3339=date)
+	mkdir -p "${dperror}"
+	mv "${tmp_srcdir}" "${dpderror}"
+	make_all_readable "${dpderror}"
+	echo "error: ${dpderror}"
 	return 2
     fi
 
