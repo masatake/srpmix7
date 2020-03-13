@@ -2535,7 +2535,7 @@ i_podman-srpm-expand_run()
 
 	    while read name ver_rel; do
 		if [[ -n "${ver_rel}" ]]; then
-		    local expected_dd=${ddir}/sources/${n}/${name}/${ver_rel}--${expander}
+		    local expected_dd=${ddir}/${P_sources}/${n}/${name}/${ver_rel}--${expander}
 		    case "${dont_overwrite}" in
 			(if-existing)
 			    if [[ -e ${expected_dd}/${p_successful} ]]; then
@@ -2562,7 +2562,7 @@ i_podman-srpm-expand_run()
 	    done  <<< $(generate_n_vr_combinations ${pkg})
 
 	    local date=$(date --rfc-3339=date)
-	    mkdir -p ${ddir}/sources
+	    mkdir -p ${ddir}/${P_sources}
 	    mkdir -p ${ddir}/_expand/${date}
 	    local container_name=${${pkg//:/__}//+/__}
 	    local tmpdir=$(mktemp --tmpdir=${ddir}/_expand/${date} -d --suffix=-${container_name}--${distro}-$c)
@@ -2627,7 +2627,7 @@ podman_publish_maybe()
 
     dtail=${ver}-${rel}--${expander}
 
-    local d=${destdir}/sources/${n}/${name}
+    local d=${destdir}/${P_sources}/${n}/${name}
     local dd=${d}/${dtail}
     local dd_hiden=${d}/.${dtail}--$$
 
@@ -2673,7 +2673,7 @@ i_podman-srpm-deploy_help()
     echo "OPTIONS:"
     {
 	echo "	--output-directory|-o DIR"
-	echo "		default: /var/lib/srpmix7"
+	echo "		default: /var/lib/${prefix}"
 	echo "	--procs|-n N"
 	echo "		default: $(expr 2 \* $(nproc --ignore=1))"
 	echo "	--dont-rebuild-image|-B"
@@ -2689,7 +2689,7 @@ i_podman-srpm-deploy_run()
     local c=${${0#i_}%_run}
     local opt
     local next
-    local odir=/var/lib/srpmix7
+    local odir=/var/lib/${prefix}
     local procs=$(expr 2 \* $(nproc --ignore=1))
     local dont_rebuild_image
     local dont_overwrite_option
