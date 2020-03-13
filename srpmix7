@@ -2788,6 +2788,180 @@ i_podman-srpm-deploy_run()
 
 #
 #
+# Subcommand: srpm-list
+#
+#
+ICMD+=srpm-list
+ICMD_DESC[srpm-list]="list versions of deplyed srpm packages"
+REQUIREMENTS[srpm-list]="rpmdev-vercmp"
+
+i_srpm-list_help()
+{
+    =printf "%s\\\\\n" "$SELF srpm-list [OPTIONS] PKG"
+
+    echo "OPTIONS:"
+    {
+	echo "	-r|--reverse"
+	echo "		reverse the result of comparisons"
+	echo "	-d|--distro DISTRO"
+	echo "		list only versions in DISTRO"
+	echo "	--root-directory|-/ DIR"
+	echo "		default: /var/lib/${prefix}"
+    }
+}
+
+pkg_ver_comp()
+{
+    local pdir=$1
+    shift 1
+
+    local e1=$(cat ${pdir}/$1/${p_info}/srpm_query_EPOCHNUM)
+    local v1=$(cat ${pdir}/$1/${p_info}/srpm_query_VERSION)
+    local r1=$(cat ${pdir}/$1/${p_info}/srpm_query_RELEASE)
+
+    local e2=$(cat ${pdir}/$2/${p_info}/srpm_query_EPOCHNUM)
+    local v2=$(cat ${pdir}/$2/${p_info}/srpm_query_VERSION)
+    local r2=$(cat ${pdir}/$2/${p_info}/srpm_query_RELEASE)
+
+    # https://unix.stackexchange.com/questions/163702/bash-script-to-verify-that-an-rpm-is-at-least-at-a-given-version
+    # rpmdevtools pkg is needed
+
+    rpmdev-vercmp "$e1" "$v1" "$r1" "$e2" "$v2" "$r2" > /dev/null
+    case $? in
+	(0|11) return 1;;
+	(12)   return 0;;
+	(*)    -E- failure in pkg_ver_comp $pdir $1 $2
+    esac
+}
+
+pkg_qsort()
+{
+    # comp returns 0 if $1 < $2
+    #      retruns 1 if $1 >= $2
+    local comp=$1
+    local pdir=$2
+    shift 2
+
+    case $# in
+	(0)
+	    return
+	    ;;
+	(1)
+	    echo $1
+	    return
+	    ;;
+    esac
+
+    local b=$1
+    shift 1
+
+    local -a lower
+    local -a upper
+
+    lower=()
+    upper=()
+    for r in "$@"; do
+	if $comp "$pdir" "$r" "$b"; then
+	    lower+=$r
+	else
+	    upper+=$r
+	fi
+    done
+
+    pkg_qsort "$comp" "$pdir" "${lower[@]}"
+    echo $b
+    pkg_qsort "$comp" "$pdir" "${upper[@]}"
+}
+
+i_srpm-list_run()
+{
+    local c=${${0#i_}%_run}
+    local rdir=/var/lib/${prefix}
+    local reverse
+    local distro
+    local pkg
+    local t
+
+    while [[ $# -gt 0 ]]; do
+	case "$1" in
+	    (--help|-h)
+		i_$c_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (-/|--root-directory)
+		if [[ -z "$2" ]]; then
+		    -E- "$c: no directory name is given for $1 option"
+		fi
+		rdir=$2
+		shift 2
+		;;
+	    (-r|--reverse)
+		reverse=1
+		shift 1
+		;;
+	    (-d|--distro)
+		if [[ -z "$2" ]]; then
+		    -E- "$c: no distro name is given for $1 option"
+		fi
+		distro=$2
+		shift 2
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    if [[ $# -eq 0 ]]; then
+	-E- "$c: no package name is given"
+    elif [[ $# -gt 1 ]]; then
+	-E- "$c: cannot handle multiple packages at once: $@"
+    fi
+    pkg=$1
+    shift 1
+
+    if [[ -z "$pkg" ]]; then
+	-E- "$c: no package name is given"
+    fi
+
+    if [[ ! -d "$rdir" ]]; then
+	-E- "$c: rootdir doesn't exist: $rdir"
+    fi
+
+    t="${rdir}/${P_sources}/$(name_prefix $pkg)/$pkg"
+    if [[ ! -d "$t" ]]; then
+	-E- "$c: no directory for $pkg: $t"
+    fi
+
+    check_requirements srpm list
+
+    local expander=srpm
+    local v
+
+    pkg_qsort pkg_ver_comp $t $(for v in $t/*-${expander}(N); do
+				    if [[ -n "${distro}"
+				  && ! -e "$v/${p_info_podman_srpm_distro_D}/${distro}" ]]; then
+					continue
+				    fi
+				    echo $(basename "$v")
+				done) | if [[ "$reverse" = 1 ]]; then
+	tac
+    else
+	cat
+    fi
+}
+
+#
+#
 # Subcommand: expand
 #
 #
