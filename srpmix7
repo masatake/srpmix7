@@ -2674,6 +2674,8 @@ i_podman-srpm-deploy_help()
     {
 	echo "	--output-directory|-o DIR"
 	echo "		default: /var/lib/${prefix}"
+	echo "	--root-directory|-/ DIR"
+	echo "		same as --output-directory"
 	echo "	--procs|-n N"
 	echo "		default: $(expr 2 \* $(nproc --ignore=1))"
 	echo "	--dont-rebuild-image|-B"
@@ -2706,7 +2708,7 @@ i_podman-srpm-deploy_run()
 		shift 1
 		set -- "$opt" "$next" "$@"
 		;;
-	    (--output-directory|-o)
+	    (--output-directory|-o|-/|--root-directory)
 		if [[ -z "$2" ]]; then
 		    -E- "$c: no directory name is given for $1 option"
 		fi
