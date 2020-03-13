@@ -65,7 +65,7 @@ readonly -x p_uname=_uname
 readonly -x p_uname_version=$p_uname/version
 readonly -x p_log=_log
 readonly -x p_stmp=__src_tmp
-readonly -x p_info_podman_srpm_distro_D=podman-srpm-distro.d
+readonly -x p_info_podman_srpm_distro_D=${p_info}/podman-srpm-distro.d
 #
 # Too long directory name for expander makes expanding the source
 # code of systemd failure; the long name makes command line
@@ -2211,7 +2211,7 @@ i_podman-srpm-pkglist_run()
 		podman run --name=dnf-list-"${distro}" --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
 		    | grep -v '^Available Packages.*' \
 		    | sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
-	            | trim_epoch \
+		    | trim_epoch \
 		    | sort -u
 		;;
 	    (yds)
@@ -2415,9 +2415,9 @@ podman_srpm_expand_stamp()
     local distro=$1
     local expected_dd=$2
 
-    mkdir -p ${expected_dd}/${p_info}/${p_info_podman_srpm_distro_D}
+    mkdir -p ${expected_dd}/${p_info_podman_srpm_distro_D}
     echo ${DISTRO_srepos[${distro}]} | sed -e '/^$/d' \
-					   > ${expected_dd}/${p_info}/${p_info_podman_srpm_distro_D}/${distro}
+					   > ${expected_dd}/${p_info_podman_srpm_distro_D}/${distro}
 }
 
 i_podman-srpm-expand_run()
@@ -2638,7 +2638,7 @@ podman_publish_maybe()
 	return $r
     fi
 
-    local d_distro=${p_info}/${p_info_podman_srpm_distro_D}
+    local d_distro=${p_info_podman_srpm_distro_D}
     mkdir -p $d
     if [[ -e "${dd}" ]]; then
 	mv "${dd}" "${dd_hiden}"
