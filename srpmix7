@@ -2402,6 +2402,16 @@ i_podman-srpm-expand_help()
     }
 }
 
+podman_srpm_expand_stamp()
+{
+    local distro=$1
+    local expected_dd=$2
+
+    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+    echo ${DISTRO_srepos[${distro}]} | sed -e '/^$/d' \
+					   > ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+}
+
 i_podman-srpm-expand_run()
 {
     local c=${${0#i_}%_run}
@@ -2521,21 +2531,18 @@ i_podman-srpm-expand_run()
 		    case "${dont_overwrite}" in
 			(if-existing)
 			    if [[ -e ${expected_dd}/${p_successful} ]]; then
-				mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-				touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+				podman_srpm_expand_stamp ${distro} ${expected_dd}
 				echo "existing as SUCCESSFUL: ${expected_dd}"
 				return ${dont_overwrite_status}
 			    elif [[ -e ${expected_dd}/${p_incomplete} ]]; then
-				mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-				touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+				podman_srpm_expand_stamp ${distro} ${expected_dd}
 				echo "existing as INCOMPLETE: ${expected_dd}"
 				return ${dont_overwrite_status}
 			    fi
 			    ;;
 			(if-successful)
 			    if [[ -e ${expected_dd}/${p_successful} ]]; then
-				mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
-				touch ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+				podman_srpm_expand_stamp ${distro} ${expected_dd}
 				echo "existing as SUCCESSFUL:  ${expected_dd}"
 				return ${dont_overwrite_status}
 			    fi
@@ -2635,8 +2642,7 @@ podman_publish_maybe()
 	mv "${dd_hiden}/${d_distro}" "${dd}/${d_distro}"
     fi
 
-    mkdir -p "${dd}/${d_distro}"
-    touch "${dd}/${d_distro}/${distro}"
+    podman_srpm_expand_stamp ${distro} ${dd}
     echo "${msg}: ${dd}"
 
     if [[ -e "${dd_hiden}" ]]; then
