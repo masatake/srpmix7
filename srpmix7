@@ -53,7 +53,6 @@ readonly UCTAGS=${UCTAGS:-~/bin/u-ctags}
 # x_: expander
 #
 
-
 #
 # Lower directory structure
 #
