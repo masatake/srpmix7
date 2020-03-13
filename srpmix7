@@ -29,10 +29,16 @@ readonly UCTAGS=${UCTAGS:-~/bin/u-ctags}
 
 #
 # TODO
-#    subcommands: diag, deploy(kicked from systemd unit), repair,
-#                 attach(generate bundle), spider(?), gc-raw, gc-upper, delete
+#    subcommands:
+#                 diag
+#                 attach(generate bundle),
+#                 gc-lower, gc-upper
+#                 iso-spider
+#                 delete
+#                 repair
+#                 list pkg (utility for synth-git-union)
 #
-#
+
 #
 # Namespace
 #
