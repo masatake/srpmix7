@@ -539,7 +539,7 @@ evar_enumerate()
 
 #
 #
-# Subcommand: inull
+# Subcommand: null
 #
 #
 ICMD+=null
