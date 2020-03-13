@@ -65,6 +65,7 @@ readonly -x p_uname=_uname
 readonly -x p_uname_version=$p_uname/version
 readonly -x p_log=_log
 readonly -x p_stmp=__src_tmp
+readonly -x p_info_podman_srpm_distro_D=podman-srpm-distro.d
 #
 # Too long directory name for expander makes expanding the source
 # code of systemd failure; the long name makes command line
@@ -101,6 +102,8 @@ readonly -x P_cradle_conf=_.cradle
 readonly -x P_cradle_log=_log
 readonly -x P_cradle_bundles=_bundles
 readonly -x P_dists=dists
+readonly -x P_podman_errors=_errors
+readonly -x P_podman_xargs=_xargs
 
 #
 # Rearrange zsh behavior
@@ -2412,9 +2415,9 @@ podman_srpm_expand_stamp()
     local distro=$1
     local expected_dd=$2
 
-    mkdir -p ${expected_dd}/${p_info}/podman-srpm-distro.d
+    mkdir -p ${expected_dd}/${p_info}/${p_info_podman_srpm_distro_D}
     echo ${DISTRO_srepos[${distro}]} | sed -e '/^$/d' \
-					   > ${expected_dd}/${p_info}/podman-srpm-distro.d/${distro}
+					   > ${expected_dd}/${p_info}/${p_info_podman_srpm_distro_D}/${distro}
 }
 
 i_podman-srpm-expand_run()
@@ -2516,8 +2519,8 @@ i_podman-srpm-expand_run()
     local msgout=/dev/stdout
 
     if [[ -n "${xargs}" ]]; then
-	mkdir -p ${ddir}/_xargs
-	msgout=${ddir}/_xargs/${(P)xargs}.cpuid
+	mkdir -p ${ddir}/${P_podman_xargs}
+	msgout=${ddir}/${P_podman_xargs}/${(P)xargs}.cpuid
 	# printf "srpmix7 (%s) " "$c" > "$msgout"
 	echo -n "srpmix7 " > "$msgout"
     fi
@@ -2605,7 +2608,7 @@ podman_publish_maybe()
 	msg=incomplete
 	r=1
     else
-	local derror=${destdir}/_errors
+	local derror=${destdir}/${P_podman_errors}
 	local dperror=${derror}/${pkg}
 	local dpderror=${dperror}/${distro}-$(date --rfc-3339=date)
 	mkdir -p "${dperror}"
@@ -2635,7 +2638,7 @@ podman_publish_maybe()
 	return $r
     fi
 
-    local d_distro=${p_info}/podman-srpm-distro.d
+    local d_distro=${p_info}/${p_info_podman_srpm_distro_D}
     mkdir -p $d
     if [[ -e "${dd}" ]]; then
 	mv "${dd}" "${dd_hiden}"
