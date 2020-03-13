@@ -49,7 +49,7 @@ readonly UCTAGS=${UCTAGS:-~/bin/u-ctags}
 # l_: link related
 # p_: file/directory names of lower directory structure
 # P_: file/directory names of upper directory structure
-# s_: status ofexpansion
+# s_: status of expansion
 # x_: expander
 #
 
