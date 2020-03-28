@@ -1956,7 +1956,7 @@ rhel-rs-for-rhel-7-server-source-rpms
 '
 DISTRO_brepos[rhel7x]=${DISTRO_brepos[rhel7]}
 DISTRO_brepos[rhel7x]+='
-rhel-7-server-rh-common-source-rpms
+rhel-7-server-rh-common-rpms
 rhel-ha-for-rhel-7-server-rpms
 rhel-rs-for-rhel-7-server-rpms
 '
