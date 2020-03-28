@@ -2691,7 +2691,7 @@ i_podman-srpm-deploy_help()
 	echo "	--dont-rebuild-image|-B"
 	echo "	--dont-overwrite ..."
 	echo "		see also: $SELF podman-srpm-expand --help"
-	echo "  -u"
+	echo "	-u"
 	echo "		same as --dont-overwrite=if-successful:0"
 	echo "	--syslog"
     }
