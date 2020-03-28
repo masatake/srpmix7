@@ -2407,6 +2407,7 @@ i_podman-srpm-expand_help()
 	echo "		default: if-existing:0"
 	echo "	--overwrite-even-if-incomplete"
 	echo "	--xargs=ENVVAR"
+	echo "	--syslog"
     }
 }
 
@@ -2429,6 +2430,7 @@ i_podman-srpm-expand_run()
     local dont_overwrite_status=0
     local overwrite_even_if_incomplete
     local xargs
+    local use_syslog
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -2472,6 +2474,10 @@ i_podman-srpm-expand_run()
 		    -E- "$C: value for ${xargs} is not given"
 		fi
 		shift 2
+		;;
+	    (--syslog)
+		use_syslog=1
+		shift 1
 		;;
 	    (-*)
 		-E- "$c: unknown option: $1"
@@ -2579,7 +2585,11 @@ i_podman-srpm-expand_run()
 	} >> $msgout
     } always {
 	if [[ -n "${xargs}" ]]; then
-	    logger --file "${msgout}"
+	    if [[ "${use_syslog}" = 1 ]]; then
+		logger --file "${msgout}"
+	    else
+		cat "${msgout}"
+	    fi
 	    rm "${msgout}"
 	fi
     }
@@ -2683,6 +2693,7 @@ i_podman-srpm-deploy_help()
 	echo "		see also: $SELF podman-srpm-expand --help"
 	echo "  -u"
 	echo "		same as --dont-overwrite=if-successful:0"
+	echo "	--syslog"
     }
 }
 
@@ -2695,6 +2706,7 @@ i_podman-srpm-deploy_run()
     local procs=$(expr 2 \* $(nproc --ignore=1))
     local dont_rebuild_image
     local dont_overwrite_option
+    local syslog_option
 
     while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -2736,6 +2748,10 @@ i_podman-srpm-deploy_run()
 		;;
 	    (-u)
 		dont_overwrite_option="--dont-overwrite=if-successful:0"
+		shift 1
+		;;
+	    (--syslog)
+		syslog_option=$1
 		shift 1
 		;;
 	    (-*)
@@ -2783,7 +2799,7 @@ i_podman-srpm-deploy_run()
 	| xargs --process-slot-var=CPUID \
 		-P "${procs}" \
 		-n 3 \
-		${SELF_FULL} podman-srpm-expand --xargs=CPUID ${dont_overwrite_option}
+		${SELF_FULL} podman-srpm-expand --xargs=CPUID ${dont_overwrite_option} ${syslog_option}
 }
 
 #
