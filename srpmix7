@@ -72,7 +72,7 @@ readonly -x p_info_podman_srpm_distro_D=${p_info}/podman-srpm-distro.d
 # for applying patches with git am too long.
 #
 #readonly -x p_xtmp=__expander_tmp
-readonly -x p_xtmp=__x_T
+readonly -x p_xtmp=_
 readonly -x p_bundle_status=_status
 readonly -x p_bundle_log=_log
 readonly -x p_bundle_uname=_uname
