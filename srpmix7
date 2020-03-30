@@ -1936,7 +1936,7 @@ RUN yum -y install zsh rpm-build yum-utils deltarpm
 RUN yum -y install gcc gcc-c++ annobin git rubygems make autoconf automake gettext-devel dos2unix libtool
 RUN yum -y install libselinux-utils xorg-x11-server-source javapackages-tools ocaml-ocamlbuild
 RUN yum -y install --enablerepo=rhel-server-rhscl-7-rpms rh-nodejs4-build
-
+RUN yum -y install autoconf-archive
 RUN yum makecache
 
 COPY ./hooks /hooks
@@ -1972,6 +1972,7 @@ RUN yum -y install zsh rpm-build yum-utils deltarpm
 RUN yum -y install gcc gcc-c++ annobin git rubygems make autoconf automake gettext-devel dos2unix libtool
 RUN yum -y install libselinux-utils xorg-x11-server-source javapackages-tools ocaml-ocamlbuild
 RUN yum -y install --enablerepo=rhel-server-rhscl-7-rpms rh-nodejs4-build
+RUN yum -y install autoconf-archive
 
 RUN : for SCL : yum -y install rh-java-common-PyXB.noarch maven-artifact maven30-maven-artifact rh-maven33-maven-artifact rh-maven36-maven-artifact  maven-local
 RUN yum -y install libxml2-devel
