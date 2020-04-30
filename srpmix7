@@ -2001,8 +2001,8 @@ ICMD_DESC[podman-image-build]="build container image for expanding source code"
 i_podman-image-build_help()
 {
     local k
-    =printf "%s\\\\\n" "$SELF podman-image-build DISTRO"
-    =printf "%s\\\\\n" "$SELF podman-image-build [OPTIONS]"
+    =printf "%s\n" "$SELF podman-image-build DISTRO"
+    =printf "%s\n" "$SELF podman-image-build [OPTIONS]"
     echo "OPTIONS:"
     {
 	echo "	--dont-overwrite|-a"
@@ -2147,7 +2147,7 @@ ICMD+=podman-srpm-pkglist
 ICMD_DESC[podman-srpm-pkglist]="list packages"
 i_podman-srpm-pkglist_help()
 {
-    =printf "%s\\\\\n" "$SELF podman-srpm-pkglist [--expand-args=DISTDIR] DISTRO..."
+    =printf "%s\n" "$SELF podman-srpm-pkglist [--expand-args=DISTDIR] DISTRO..."
 }
 
 i_podman-srpm-pkglist_run()
@@ -2325,7 +2325,7 @@ ICMD+=podman-srpm-repolist
 ICMD_DESC[podman-srpm-repolist]="list repositories"
 i_podman-srpm-repolist_help()
 {
-    =printf "%s\\\\\n" "$SELF podman-srpm-repolist DISTRO"
+    =printf "%s\n" "$SELF podman-srpm-repolist DISTRO"
 }
 
 i_podman-srpm-repolist_run()
@@ -2401,7 +2401,7 @@ ICMD_DESC[podman-srpm-expand]="expand srpm with podman"
 
 i_podman-srpm-expand_help()
 {
-    =printf "%s\\\\\n" "$SELF podman-srpm-expand [OPTIONS] DISTRO SRPM DISTDIR "
+    =printf "%s\n" "$SELF podman-srpm-expand [OPTIONS] DISTRO SRPM DISTDIR "
     echo "OPTIONS:"
     {
 	echo "	--dont-overwrite|-a (force-overwrite|if-successful[:status]|if-existing[:status])"
@@ -2680,7 +2680,7 @@ ICMD_DESC[podman-srpm-deploy]="deploy source code in distros"
 
 i_podman-srpm-deploy_help()
 {
-    =printf "%s\\\\\n" "$SELF podman-srpm-deploy [OPTIONS] DISTRO..."
+    =printf "%s\n" "$SELF podman-srpm-deploy [OPTIONS] DISTRO..."
     echo "OPTIONS:"
     {
 	echo "	--output-directory|-o DIR"
@@ -2814,7 +2814,7 @@ REQUIREMENTS[srpm-list]="rpmdev-vercmp"
 
 i_srpm-list_help()
 {
-    =printf "%s\\\\\n" "$SELF srpm-list [OPTIONS] PKG"
+    =printf "%s\n" "$SELF srpm-list [OPTIONS] PKG"
 
     echo "OPTIONS:"
     {
