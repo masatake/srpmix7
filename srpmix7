@@ -1728,7 +1728,7 @@ typeset -A DISTRO_docker_files
 typeset -A DISTRO_hook_scripts
 
 #
-# ceontos8
+# centos8
 #
 DISTRO_stype[centos8]=dds
 DISTRO_expander[centos8]=srpm
@@ -1738,7 +1738,7 @@ BaseOS-source
 centosplus-source
 extras-source
 "
-DISTRO_brepos[centos]="
+DISTRO_brepos[centos8]="
 AppStream
 BaseOS
 centosplus
