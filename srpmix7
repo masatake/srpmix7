@@ -138,7 +138,7 @@ typeset -A ICMD_DESC
 ICMD_DESC=(
 )
 
-EVAR[TMPDIR]="Directory where temorary directories are created"
+EVAR[TMPDIR]="Directory where temporary directories are created"
 
 EVAR[UCTAGS]="Path for Universal ctags"
 EVAR_DEFAULT[UCTAGS]=${UCTAGS}
@@ -696,7 +696,7 @@ i_link_run()
 
     for target in "$@"; do
 	if ! [[ "${target}" == */* ]]; then
-	    -E- "$c: / is not found in a PACKAGE/VERSION arguemnt: ${target}"
+	    -E- "$c: / is not found in a PACKAGE/VERSION argument: ${target}"
 	fi
 	p=${target:h}
 	v=${target:t}
@@ -792,7 +792,7 @@ i_bundle_help()
 {
     local k
 
-    echo "$SELF bunlde [OPTIONS] SRPMIX7DIR BUNDLE [BUNDLE_ARGS...]"
+    echo "$SELF bundle [OPTIONS] SRPMIX7DIR BUNDLE [BUNDLE_ARGS...]"
     echo
 
     echo "OPTIONS:"
@@ -1262,7 +1262,7 @@ i_deploy_run()
     done
 
     if [[ -z "$1" ]]; then
-	-E- "$c: too few arguemnt, no cradle file is given"
+	-E- "$c: too few argument, no cradle file is given"
     elif [[ ! -e "$1" ]]; then
 	-E- "$c: no such directory entry: $1"
     elif [[ ! -f "$1" ]]; then
@@ -1310,7 +1310,7 @@ i_deploy_run()
     done
 
     if [[ -z "$1" ]]; then
-	-E- "$c: too few arguemnt, no sources7 directory is given"
+	-E- "$c: too few argument, no sources7 directory is given"
     elif [[ ! -e "$1" ]]; then
 	-E- "$c: no such directory entry: $1"
     elif [[ ! -d "$1" ]]; then
@@ -1337,7 +1337,7 @@ i_deploy_run()
 	fi
 
 	if ! lock cradlefd ${cradledir}; then
-	    -E- "${c}: other process may work on ${cradle_name} (faild to lock ${cradledir})"
+	    -E- "${c}: other process may work on ${cradle_name} (failed to lock ${cradledir})"
 	fi
 
 	local cradle=${sources7}/${P_cradles}/${cradle_name}
@@ -1413,7 +1413,7 @@ readonly -x r_successful='.'
 PROGRESS_REPORT_CHAR[$r_successful]="successfully expanded"
 
 readonly -x r_bug='!'
-PROGRESS_REPORT_CHAR[$r_bug]="MAYBY A BUG IN EXPAND SUBCOMMAND"
+PROGRESS_REPORT_CHAR[$r_bug]="MAYBE A BUG IN EXPAND SUBCOMMAND"
 
 readonly -x r_failed_in_prep='f'
 PROGRESS_REPORT_CHAR[$r_failed_in_prep]="failed in %prep"
@@ -1651,7 +1651,7 @@ d_dir_deploy()
 	    local s=${dest}/${p_status}
 
 	    if ! lock destfd ${dest}; then
-		-W- "${c}: other process may work on [${cradle_name}]${src}/${expander} (faild to lock ${dest})"
+		-W- "${c}: other process may work on [${cradle_name}]${src}/${expander} (failed to lock ${dest})"
 		progress_report "${r_locked}" ${dest}
 		throw "${r_locked}"
 	    fi
@@ -2079,7 +2079,7 @@ i_podman-image-build_run()
 
     local tmpdir=$(mktemp -d --suffix=srpmix7-$c-${distro})
     if ! [[ "$tmpdir" =~ '/tmp/.*' ]]; then
-	-E- "$c: unexpected temorary file name: $tmpdir"
+	-E- "$c: unexpected temporary file name: $tmpdir"
     fi
 
     echo "${DISTRO_docker_files[$distro]}" > $tmpdir/Dockerfile.in
@@ -2105,7 +2105,7 @@ i_podman-image-build_run()
 	    done >> $tmpdir/srpmix7.dockerfile
 	    ;;
 	(*)
-	    -E- "$c: list operatoin is not supported in %s stype"
+	    -E- "$c: list operation is not supported in %s stype"
 	    ;;
     esac
     cp $SELF_FULL $tmpdir/srpmix7
@@ -2273,7 +2273,7 @@ i_podman-srpm-pkglist_run()
 			done }
 		;;
 	    (*)
-		-E- "$c: list operatoin is not supported in $stype stype"
+		-E- "$c: list operation is not supported in $stype stype"
 		;;
 	esac
     done
@@ -2386,7 +2386,7 @@ i_podman-srpm-repolist_run()
 		| sed -n -e 's|^[*!]\?\([^/ \t]\+\).*$|\1|p'
 	    ;;
 	(*)
-	    -E%- "repolist operatoin is not supported in %s stype" "$stype"
+	    -E%- "repolist operation is not supported in %s stype" "$stype"
 	    ;;
     esac
 }
@@ -2809,7 +2809,7 @@ i_podman-srpm-deploy_run()
 #
 #
 ICMD+=srpm-list
-ICMD_DESC[srpm-list]="list versions of deplyed srpm packages"
+ICMD_DESC[srpm-list]="list versions of deployed srpm packages"
 REQUIREMENTS[srpm-list]="rpmdev-vercmp"
 
 i_srpm-list_help()
@@ -2854,7 +2854,7 @@ pkg_ver_comp()
 pkg_qsort()
 {
     # comp returns 0 if $1 < $2
-    #      retruns 1 if $1 >= $2
+    #      returns 1 if $1 >= $2
     local comp=$1
     local pdir=$2
     shift 2
@@ -3879,7 +3879,7 @@ x_src_dds_transfer()
 		shift 1
 		;;
 	    (*)
-		-E- "unexpectd argument for srpm expander: $1"
+		-E- "unexpected argument for srpm expander: $1"
 		;;
 	esac
     done
@@ -3952,7 +3952,7 @@ x_src_yds_transfer()
 		shift 1
 		;;
 	    (*)
-		-E- "unexpectd argument for srpm expander: $1"
+		-E- "unexpected argument for srpm expander: $1"
 		;;
 	esac
     done
@@ -4283,7 +4283,7 @@ x_expand_srpm_run()
 		shift 1
 		;;
 	    (*)
-		-E- "unexpectd argument for srpm expander: $1"
+		-E- "unexpected argument for srpm expander: $1"
 		;;
 	esac
     done
@@ -4334,7 +4334,7 @@ x_expand_srpm_run()
 	#
 	# rhev-agent-2.3.16-3.el6.src.rpm contains gdm*.src.rpm as SOURCE1.
 	# So two spec files, one for rhev-agent and one for gdm are in SPECS directory.
-	# This becomes a trouble whev moving SPECS/*.spec  specs/srpm.spec.
+	# This becomes a trouble when moving SPECS/*.spec  specs/srpm.spec.
 	# So The spec file name is recorded to t_spec here. The spec file for
 	# gdm generated while rpmbuild-bp is throws away when moving.
 	#
