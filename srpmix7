@@ -4347,7 +4347,18 @@ x_expand_srpm_run()
 	    throw WRONG_SPEC_NUM
 	fi
 
-	rpmbuild --define="_topdir $t/$p_xtmp" ${nodeps} --target=x86_64 -bp ${t_spec[1]} \
+	# See https://unix.stackexchange.com/questions/325945/declare-as-local-var-will-break-a-function-and-log-out-1-number-expected
+	# zsh older than 5.1 doesn't allow scripts to do declaring an array and initializing
+	# it at once. The version of zsh bundled in RHEL7 is 5.0.2.
+	local -a args
+	args=("--define=_topdir $t/$p_xtmp")
+
+	if [[ -x /usr/bin/python3 ]]; then
+	    args+="--define=__python /usr/bin/python3"
+	fi
+	args+=(${nodeps} --target=x86_64 -bp ${t_spec[1]})
+
+	rpmbuild "${args[@]}" \
 		 > "$t/$p_log/x_srpm-rpmbuild-bp.log" 2>&1 \
 		 < <(yes "")
 	s=$?
