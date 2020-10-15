@@ -4064,6 +4064,8 @@ x_dest_dir_transfer()
 	if [[ "${x:t}" == __* ]]; then
 	    # __tmp should not be transferred.
 	    continue
+	elif [[ "${x:t}" == "${p_xtmp}" ]]; then
+	    continue
 	fi
 
 	if [[ "${x:t}" == "${p_log}" && $(< ${src}/.${p_status}) == ${s_successful} ]]; then
