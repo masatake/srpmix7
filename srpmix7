@@ -1829,6 +1829,7 @@ RUN dnf -y install autoconf automake gettext-devel libtool make intltool
 RUN dnf -y install javapackages-local javapackages-tools
 RUN dnf -y install fontconfig perl rubygems libselinux-utils dos2unix
 RUN dnf -y install xorg-x11-server-devel intltool java-latest-openjdk-devel python2
+RUN dnf -y install glib2-devel
 
 #include "srpmix7.dockerfile"
 
