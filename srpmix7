@@ -3329,7 +3329,7 @@ i_expand_run()
     #       if not expanded yet, lock the directory.
     #
     {
-	if ! t=$(mktemp --tmpdir="${tmp_root}" --directory ${SELF}-EXPAND-${expander}.XXXXXXXXXX) ; then
+	if ! t=$(mktemp --tmpdir="${tmp_root}" --directory ${SELF}X${expander}.XXXXX) ; then
 	    throw Creation
 	elif [[ "${debug}" == "yes" ]]; then
 	    echo tmpdir: $t
