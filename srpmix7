@@ -1794,6 +1794,78 @@ RUN yum -y install cpp
 COPY ./hooks /hooks
 COPY ./srpmix7 /usr/bin/srpmix7
 '
+#
+# fedora33
+#
+DISTRO_stype[fedora33]=dds
+DISTRO_expander[fedora33]=srpm
+DISTRO_srepos[fedora33]="
+fedora-modular-source
+fedora-source
+updates-modular-source
+updates-source
+"
+#updates-testing-modular-source
+#updates-testing-source
+
+DISTRO_brepos[fedora33]="
+fedora
+fedora-cisco-openh264
+fedora-modular
+updates
+updates-modular
+"
+# updates-testing
+# updates-testing-modular
+
+DISTRO_docker_files[fedora33]='
+FROM docker.io/library/fedora:33
+RUN dnf -y install zsh rpm-build dnf-plugins-core
+RUN dnf -y install gcc annobin
+RUN dnf -y install git
+RUN dnf -y install systemd-rpm-macros R-rpm-macros build2-rpm-macros cmake-rpm-macros erlang-rpm-macros ghc-rpm-macros go-rpm-macros kde-apps-rpm-macros kf5-rpm-macros postgresql-test-rpm-macros python-qt5-rpm-macros python2-rpm-macros qt5-rpm-macros.noarch
+RUN dnf -y install autoconf automake gettext-devel libtool make intltool
+RUN dnf -y install javapackages-local javapackages-tools
+RUN dnf -y install fontconfig perl rubygems libselinux-utils dos2unix
+RUN dnf -y install xorg-x11-server-devel intltool java-latest-openjdk-devel python2
+RUN dnf -y install glib2-devel
+
+#include "srpmix7.dockerfile"
+
+RUN dnf -y install R-rpm-macros cabal-rpm erlang-rpm-macros fedora-rpm-macros flatpak-rpm-macros ghc-rpm-macros go-rpm-macros javapackages-local javapackages-tools lxqt-build-tools maven-local multilib-rpm-config nodejs-packaging obs-service-rust2rpm php-pear-PEAR-Command-Packaging pyproject-rpm-macros python-packaging python-rpm-macros python3-javapackages python3-packaging python3-rdopkg rubygems rubygems-devel rust-packaging scl-utils scl-utils-build web-assets-devel
+
+RUN dnf -y install ocaml-ocamlbuild ocaml-runtime
+
+RUN dnf repolist --all
+RUN dnf -y makecache
+
+COPY ./hooks /hooks
+COPY ./srpmix7 /usr/bin/srpmix7
+'
+
+DISTRO_hook_scripts[fedora33/expander_srpm/before-builddep]='
+#!/bin/zsh
+typeset -a REPOS
+REPOS=('"
+${DISTRO_brepos[fedora33]}
+"')
+dnf config-manager --set-disabled ''*''
+for r in "${REPOS[@]}"; do
+    dnf config-manager --set-enabled $r
+done
+'
+
+DISTRO_hook_scripts[fedora33/stype_dds/before-download]='
+#!/bin/zsh
+typeset -a REPOS
+REPOS=('"
+${DISTRO_srepos[fedora33]}
+"')
+dnf config-manager --set-disabled ''*''
+for r in "${REPOS[@]}"; do
+    dnf config-manager --set-enabled $r
+done
+'
 
 #
 # fedora31
