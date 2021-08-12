@@ -588,6 +588,11 @@ i_link_help()
 	=printf "%-10s	%s\n" "$k" "${LTYPES[$k]}" | indent
     done
     echo
+
+    echo "Example:"
+    echo
+    echo "	$SELF link alias rhel-server-7-6-source-iso /var/lib/srpmix7 kernel/3.10.0-957.el7--srpm"
+    echo
 }
 
 i_link_run()
