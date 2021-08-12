@@ -1,0 +1,265 @@
+#!/bin/bash
+#
+# This script requires isoinfo command.
+# isoinfo is in genisoimage in RHEL8.
+#
+DEFAULT_SOURCES_DIR=/var/lib/srpmix7
+DEFAULT_CACHE_DIR=~/.lsiso
+
+help()
+{
+    echo Usage:
+    echo "	lsiso download [--cache-dir CACHEDIR] rhelX.Y"
+    echo "	lsiso ls [--cache-dir CACHEDIR] rhelX.Y"
+    echo "	lsiso lslink [--cache-dir CACHEDIR] [--sources-dir SOURCES7UPPDERDIR] rhelX.Y"
+    echo
+    echo Default values:
+    echo "	CACHEDIR: ${DEFAULT_CACHE_DIR}"
+    echo "	SOURCES7UPPDERDIR: ${DEFAULT_SOURCES_DIR}"
+}
+
+error()
+{
+    echo "$@" 1>&2
+    exit 1
+}
+
+make_cache_dir()
+{
+    local cache_dir=$1
+    mkdir -p ${cache_dir} || error "failed to make directroy for storing iso images: ${cache_dir}"
+}
+
+_DNFCONF=
+dump_dnf_conf()
+{
+    local distro=$1
+    local repo
+
+    case "$distro" in
+	rhel8.*|rhel7.*)
+	    repo=rhel-8-for-x86_64-baseos-rpms
+	    ;;
+	*)
+	    error "Unknown distribution: $distro"
+	    ;;
+    esac
+
+
+
+    if [ -z "${_DNFCONF}" ]; then
+	if ! _DNFCONF=$(dnf config-manager --dump "${repo}"); then
+	    error "failed to run dnf config-manager"
+	fi
+    fi
+
+    echo "${_DNFCONF}"
+}
+
+get_key()
+{
+    dump_dnf_conf "$1" | sed -ne 's/sslclientkey = //p'
+}
+
+get_cert()
+{
+    dump_dnf_conf "$1" | sed -ne 's/sslclientcert = //p'
+}
+
+isonames()
+{
+    local distro=$1
+    local ver=${distro#rhel}
+
+    case "$distro" in
+	rhel8.*)
+	    echo rhel-${ver}-source-dvd.iso
+	    ;;
+	rhel7.*)
+	    echo rhel-server-${ver}-source-dvd{1,2}.iso
+	    ;;
+	*)
+	    error "Unknown distribution: $distro"
+	    ;;
+    esac
+}
+
+do_download()
+{
+    local distro=$1
+    local cache_dir=$2
+
+    make_cache_dir "${cache_dir}"
+
+    local key=$(get_key "${distro}")
+    if [ -z "${key}" ]; then
+	error "failed to get the key from dnf"
+    fi
+
+    local cert=$(get_cert "${distro}")
+    if [ -z "${cert}" ]; then
+	error "failed to get the cert from dnf"
+    fi
+
+    local cacert=/etc/rhsm/ca/redhat-uep.pem
+
+    local base
+    case "$distro" in
+	rhel8.*)
+	    base=/content/dist/rhel8/${distro#rhel}/x86_64/baseos/source/iso
+	    ;;
+	rhel7.*)
+	    base=/content/dist/rhel/server/7/${distro#rhel}/x86_64/source/iso
+	    ;;
+	*)
+	    error "Unknown distribution: $distro"
+	    ;;
+    esac
+
+    local isonames=$(isonames "${distro}")
+    (
+	local isoname
+	cd ${cache_dir} &&
+	    for isoname in ${isonames}; do
+		local url=https://cdn.redhat.com/"${base}"/"${isoname}"
+		curl --key "${key}" --cert "${cert}"  --cacert "${cacert}" -O "${url}"
+	    done
+    )
+}
+
+
+do_ls()
+{
+    local distro=$1
+    local cache_dir=$2
+
+    local isonames=$(isonames "${distro}")
+    local isoname
+    for isoname in ${isonames}; do
+	if ! [ -r "${cache_dir}/${isoname}" ]; then
+	    do_download "${distro}" "${cache_dir}"
+	    break
+	fi
+    done
+
+    for isoname in ${isonames}; do
+	isoinfo -fRJ -i "${cache_dir}/${isoname}"
+    done | grep src.rpm | xargs -n 1 basename
+}
+
+do_lslink()
+{
+    local distro=$1
+    local cache_dir=$2
+    local sources_dir=$3
+
+    local isonames=$(isonames "${distro}")
+    local isoname
+    for isoname in ${isonames}; do
+	if ! [ -r "${cache_dir}/${isoname}" ]; then
+	    do_download "${distro}" "${cache_dir}"
+	    break
+	fi
+    done
+
+    local -r expander=srpm
+    local mntdir=/tmp/lsiso-$$-$(date --rfc-3339=date)
+    for isoname in ${isonames}; do
+	mkdir ${mntdir}
+	mount -o loop "${cache_dir}/${isoname}" ${mntdir} || error "failed to mount cached iso image: ${isoname} => ${mntdir}"
+	find ${mntdir} -name '*.src.rpm' | while read; do
+	    local result=$(rpm -qp --queryformat "%{name}/%{version}-%{release}\n" $REPLY)
+	    echo ${result:0:1}/${result}--${expander}
+	    # ls -ld ${sources_dir}/sources/${result:0:1}/${result}--${expander}
+	done
+	umount ${mntdir}
+	rmdir ${mntdir}
+    done
+}
+
+do_action()
+{
+    local action=$1
+    shift
+
+    local cache_dir=${DEFAULT_CACHE_DIR}
+    local sources_dir
+
+    if [ "${action}" = "lslink" ]; then
+	sources_dir=${DEFAULT_SOURCES_DIR}
+    fi
+
+    while [ $# -gt 0 ]; do
+	case $1 in
+	    --cache-dir)
+		shift
+		if [ -z "$1" ]; then
+		    error "no argument for --cache-dir option"
+		fi
+		cache_dir=$1
+		shift
+		;;
+	    --sources-dir)
+		if [ "${action}" != "lslink" ]; then
+		    error "no such option in ${action} command: $1"
+		fi
+		shift
+		sources_dir=$1
+		shift
+		;;
+	    -*)
+		error "no such option: $1"
+		;;
+	    *)
+		break
+		;;
+	esac
+    done
+
+    if [ $# -lt 1 ]; then
+	error "no distribution specified"
+    elif [ $# -gt 1 ]; then
+	error "too many arguments"
+    fi
+
+    local distro=$1
+    shift
+
+    case "$distro" in
+	rhel8.*|rhel7.*)
+	    do_${action} ${distro} ${cache_dir} ${sources_dir}
+	    ;;
+	rhel*)
+	    error "No support for $distro"
+	    ;;
+	*)
+	    error "Unknown distribution: $distro"
+	    ;;
+    esac
+}
+
+main()
+{
+    if [ $# -lt 1 ]; then
+	error "too few arguments: see $0 help"
+    fi
+
+    local action=$1
+    shift
+
+    case $action in
+	help|h|--help|-h)
+	    help
+	    exit 0
+	    ;;
+	download|ls|lslink)
+	    do_action "${action}" "$@"
+	    ;;
+	*)
+	    error "unknown command: $cmd"
+	    ;;
+    esac
+}
+
+main "$@"
+exit $?

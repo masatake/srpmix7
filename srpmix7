@@ -568,9 +568,7 @@ i_link_help()
     local k
 
     echo "$SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR PACKAGE/VERSION--EXPANDER..."
-    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --stdin"
-    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --iso"
-    echo "<not implemented yet> $SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR --comps"
+    echo "$SELF link [OPTIONS] LTYPE LNAME SOURCES7UPPDERDIR -"
     echo
 
     echo "OPTIONS:"
@@ -699,7 +697,21 @@ i_link_run()
 	-E- "$c: no such directory: ${root}/${P_sources}"
     fi
 
-    for target in "$@"; do
+    if [[ $1 = '-' ]]; then
+	while read; do
+	    targets+=$REPLY
+	done
+    else
+	for target in "$@"; do
+	    targets+=${target}
+	done
+    fi
+
+    if [[ ${#targets} -lt 1 ]]; then
+	-E- "$c: no PACKAGE/VERSION--EXPANDER is given"
+    fi
+
+    for target in ${targets[@]}; do
 	if ! [[ "${target}" == */* ]]; then
 	    -E- "$c: / is not found in a PACKAGE/VERSION argument: ${target}"
 	fi
@@ -712,13 +724,11 @@ i_link_run()
 	    else
 		-W- "$c: no such target directory: ${root}/${P_sources}/${p0}/$p/$v"
 	    fi
-	else
-	    targets+=$target
 	fi
     done
 
     r=0
-    for target in ${target[@]}; do
+    for target in ${targets[@]}; do
 	l_run_${ltype} "${lname}" "${root}" "${target}" || r=2
     done
     return $r
