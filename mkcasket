@@ -1,0 +1,201 @@
+#!/bin/bash
+
+CMD=mksquashfs
+ROOT=/srv/sources8
+
+help()
+{
+    echo Usage:
+    echo "	mkcasket help"
+    echo "	mkcasket weave [OPTIONS] distkey..."
+    echo "	mkcasket make [OPTIONS] image-name.sqfs.xz distkey..."
+    echo "	mkcasket desolve [OPTIONS] distkey..."
+    echo
+    echo Options:
+    echo "	-s|--sources-root DIR"
+    echo
+    echo Examples:
+    echo "	mkcasket weave rhel8"
+    echo "	mkcasket make image-name.sqfs.xz rhel8"
+    echo "	mkcasket desolve rhel8"
+}
+
+error()
+{
+    echo "$@" 1>&2
+    exit 1
+}
+
+select_pkgs()
+{
+    ls ${ROOT}/sources/*/*/*/info/podman-srpm-distro.d/$1 | sed -e 's|\(.*\)/info/podman-srpm-distro.d/.*$|\1|'
+}
+
+join()
+{
+    if [ $# -eq 0 ]; then
+	return
+    fi
+
+    local p=$1
+    shift
+    
+    echo _${p}$(join "$@")
+}
+
+do_weave()
+{
+    local opt
+    
+    while [ $# -gt 0 ]; do
+	case $1 in
+	    --source-root=*)
+		opt=$1
+		shift
+		ROOT=${opt#--source-root=}
+		if [ -z "$ROOT" ]; then
+		    error "No option argument for $opt"
+		fi
+		;;
+	    --source-root|-s)
+		opt=$1
+		shift
+		ROOT=$1
+		shift
+		if [ -z "$ROOT" ]; then
+		    error "No option argument for $opt"
+		fi
+		;;
+	    -*)
+		error "no such option: $1"
+		;;
+	    *)
+		break
+		;;
+	esac
+    done
+	
+    if [ $# -lt 1 ]; then
+	error 'No distkey (like rhel8) given'
+    fi
+
+    [ -d "$ROOT" ] || error "No such directroy: $ROOT"
+    local d=$(join "$@")
+
+    mkdir -p "$d" || error "Failed to create $d for keys $@"
+    mkdir -p "$d/sources" || error "Failed to create $d/sources for keys $@"
+
+    local k
+    for k in 0 1 2 3 4 5 6 7 8 9 \
+	  A B C D E F G H I J K L M N O P Q R S	T U V W X Y Z \
+	  a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+	mkdir -p "$d/sources/$k" || error "Failed to create $d/sources/$k"
+    done
+
+    local p
+    for p in $(for dk in "$@"; do select_pkgs "$dk" done | tee "$dk".list; done); do
+	local v=$(basename "$p")
+	local n=$(basename $(dirname "$p"))
+	k=$(basename $(dirname $(dirname "$p")))
+	mkdir -p "$d/sources/$k/$n/$v" || error "Failed to make directroy: $d/sources/$k/$n/$v"
+ 	# echo mount --bind "$p" "$d/sources/$k/$n/$v"
+	mount --bind "$p" "$d/sources/$k/$n/$v" || error "Failed to mount $p to $d/sources/$k/$n/$v"
+    done
+}
+
+do_desolve()
+{
+    if [ $# -lt 1 ]; then
+	error 'No distkey (like rhel8) given'
+    fi
+    local d=$(join "$@")
+
+    local k
+    for k in 0 1 2 3 4 5 6 7 8 9 \
+	  A B C D E F G H I J K L M N O P Q R S	T U V W X Y Z \
+	  a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+	(
+	    cd "$d/sources/$k"
+	    for n in *; do
+		if [ "$n" = '*' ]; then
+		    break
+		fi
+		(
+		    cd $n
+
+		    if [ $(ls | wc -l) -gt 0 ]; then
+			umount * || error "Failed to do umount at $(pwd)"
+			rmdir * || error "Failed to do rmdir at $(pwd)"
+		    fi
+		)
+		rmdir $n || error "Failed to do rmdir $(pwd)/$n"
+	    done
+	)
+	rmdir "$d/sources/$k" || error "Failed to do rmdir $d/sources/$k"
+    done
+    rmdir $d/sources || error "Failed to do rmdir $d/sources"
+    rmdir $d || error "Failed to do rmdir $d"
+}
+
+do_make()
+{
+    local img=$1
+    if [ "${img:0:1}" != '/' ]; then
+	img="$(pwd)/$img"
+    fi
+    shift
+    
+    if [ -z "$img" ]; then
+	error 'No image name given'
+    fi
+    
+    if [ $# -lt 1 ]; then
+	error 'No distkey (like rhel8) given'
+    fi
+    local d=$(join "$@")
+
+    if ! [ -d "$d" ]; then
+	error "No weaved directroy, '$d' for $@"
+    fi
+
+    (
+	cd $d
+	if [ "$(ls | wc -l)" = 0 ]; then
+	    error "The weaved directory is empty: $d"
+	fi
+	
+	time "$CMD" * "$img" -keep-as-directory -all-root -comp xz -progress
+    )
+}
+
+main()
+{
+    if [ $# -lt 1 ]; then
+	error "too few arguments: see $0 help"
+    fi
+
+    local cmd=$1
+    shift
+
+    case $cmd in
+	help|h|--help|-h)
+	    help
+	    exit 0
+	    ;;
+	weave)
+	    do_weave "$@"
+	    ;;
+	desolve)
+	    do_desolve "$@"
+	    ;;
+	make)
+	    do_make "$@"
+	    ;;
+	*)
+	    error "unknown command: $cmd"
+	    ;;
+    esac
+}
+
+main "$@"
+exit $?
