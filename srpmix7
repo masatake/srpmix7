@@ -2095,7 +2095,7 @@ RUN dnf config-manager --set-enabled codeready-builder-for-rhel-8-x86_64-rpms
 #include "srpmix7.dockerfile"
 
 RUN dnf repolist --all
-RUN dnf -y install git javapackages-tools autoconf automake gettext-devel libtool make
+RUN dnf -y install git javapackages-tools autoconf automake gettext-devel libtool make bison
 RUN dnf -y install fontconfig perl rubygems libselinux-utils dos2unix
 RUN dnf -y install xorg-x11-server-devel intltool java-1.8.0-openjdk-devel platform-python-devel python2
 RUN dnf -y module enable javapackages-tools:201801/common
