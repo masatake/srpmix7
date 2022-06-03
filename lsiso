@@ -58,12 +58,12 @@ dump_dnf_conf()
 
 get_key()
 {
-    dump_dnf_conf "$1" | sed -ne 's/sslclientkey = //p'
+    dump_dnf_conf "$1" | sed -ne 's/^sslclientkey = //p'
 }
 
 get_cert()
 {
-    dump_dnf_conf "$1" | sed -ne 's/sslclientcert = //p'
+    dump_dnf_conf "$1" | sed -ne 's/^sslclientcert = //p'
 }
 
 isonames()
