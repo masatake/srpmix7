@@ -577,6 +577,7 @@ i_link_help()
 	echo "	--action-when-error=abort|continue*"
 	echo "	--debug"
 	echo "	--trace"
+	echo "  --dont-set-xattr"
     }
     echo
 
@@ -611,6 +612,8 @@ i_link_run()
 
     local debug
     local quit_after
+
+    local dont_set_xattr=0
 
     local r
 
@@ -648,6 +651,10 @@ i_link_run()
 		    esac
 		fi
 		shift 2
+		;;
+	    (--dont-set-xattr)
+		dont_set_xattr=1
+		shift 1
 		;;
 	    (--debug)
 		debug=yes
@@ -729,7 +736,7 @@ i_link_run()
 
     r=0
     for target in ${targets[@]}; do
-	l_run_${ltype} "${lname}" "${root}" "${target}" || r=2
+	l_run_${ltype} "${lname}" "${root}" "${target}" "${dont_set_xattr}" || r=2
     done
     return $r
 }
@@ -748,6 +755,9 @@ l_run_dists()
     local target=$1
     shift
 
+    local dont_set_xattr=$1
+    shift
+
     local dist
     local p
     local v
@@ -764,8 +774,10 @@ l_run_dists()
     dist="${root}/${P_dists}/${lname}/${p0}/$p"
     local key="${prefix}-ref-dists-${lname}"
     : &&
-	{ [[ -e "${dist}" ]] || ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${dist}" } &&
-	setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
+	{ [[ -e "${dist}" ]] || ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${dist}" } && {
+	    [[ "$dont_set_xattr" == 1 ]] ||
+	    setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
+	}
 }
 
 l_run_alias()
@@ -777,6 +789,9 @@ l_run_alias()
     shift
 
     local target=$1
+    shift
+
+    local dont_set_xattr=$1
     shift
 
     local dist
@@ -791,8 +806,10 @@ l_run_alias()
     dist="${root}/${P_sources}/${p0}/$p/"'^'"${lname}"
     local key="${prefix}-ref-alias-${lname}"
     : &&
-	{ [[ -e "${dist}" ]] || ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${dist}" } &&
-	setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
+	{ [[ -e "${dist}" ]] || ln -f -s -r "${root}/${P_sources}/${p0}/$p/$v" "${dist}" } && {
+	    [[ "$dont_set_xattr" == 1 ]] ||
+	    setfattr -n user.${key} -v "${c_version}" "${root}/${P_sources}/${p0}/$p/$v"
+	}
 }
 
 #
