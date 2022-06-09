@@ -28,7 +28,8 @@ error()
 
 select_pkgs()
 {
-    ls ${ROOT}/sources/*/*/*/info/podman-srpm-distro.d/$1 | sed -e 's|\(.*\)/info/podman-srpm-distro.d/.*$|\1|'
+    ls ${ROOT}/sources/*/*/*/info/podman-srpm-distro.d/$1 | grep -v '/\^' \
+	| sed -e 's|\(.*\)/info/podman-srpm-distro.d/.*$|\1|'
 }
 
 join()
