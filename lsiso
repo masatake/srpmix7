@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # This script requires isoinfo command.
-# isoinfo is in genisoimage in RHEL8.
+# isoinfo is in genisoimage package in RHEL8.
 #
 DEFAULT_SOURCES_DIR=/var/lib/srpmix7
 DEFAULT_CACHE_DIR=${DEFAULT_SOURCES_DIR}/isos
