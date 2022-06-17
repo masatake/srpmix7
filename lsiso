@@ -45,8 +45,6 @@ dump_dnf_conf()
 	    ;;
     esac
 
-
-
     if [ -z "${_DNFCONF}" ]; then
 	if ! _DNFCONF=$(dnf config-manager --dump "${repo}"); then
 	    error "failed to run dnf config-manager"
@@ -126,7 +124,6 @@ do_download()
 	    done
     )
 }
-
 
 do_ls()
 {
