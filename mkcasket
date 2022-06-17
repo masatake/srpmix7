@@ -115,6 +115,9 @@ do_desolve()
     for k in 0 1 2 3 4 5 6 7 8 9 \
 	  A B C D E F G H I J K L M N O P Q R S	T U V W X Y Z \
 	  a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+	if ! [ -d "$d/sources/$k" ]; then
+	    continue
+	fi
 	(
 	    cd "$d/sources/$k"
 	    for n in *; do
@@ -123,11 +126,18 @@ do_desolve()
 		fi
 		(
 		    cd $n
-
-		    if [ $(ls | wc -l) -gt 0 ]; then
-			umount * || error "Failed to do umount at $(pwd)"
-			rmdir * || error "Failed to do rmdir at $(pwd)"
-		    fi
+		    local v
+		    for v in *; do
+			if [ "$v" = '*' ]; then
+			    break
+			elif [ -L "$v" ]; then
+			    rm "$v"
+			    continue
+			else
+			    umount "$v" || :
+			    rmdir "$v" || error "Failed to do rmdir at $(pwd)"
+			fi
+		    done
 		)
 		rmdir $n || error "Failed to do rmdir $(pwd)/$n"
 	    done
