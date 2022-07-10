@@ -4724,9 +4724,17 @@ x_expand_srpm_run()
 	fi
 	args+=(${nodeps} --target=x86_64 -bp ${t_spec[1]})
 
+	local generator=yes
+	case  "${t_spec[1]}" in
+	    *gmsh*)
+		# See https://bugzilla.redhat.com/show_bug.cgi?id=2083362
+		generator=echo
+		;;
+	esac
+
 	rpmbuild "${args[@]}" \
 		 > "$t/$p_log/x_srpm-rpmbuild-bp.log" 2>&1 \
-		 < <(yes "")
+		 < <($generator "")
 	s=$?
 	echo $s > "$t/$p_log/x_srpm-rpmbuild-bp.status"
 	if [[ $s != 0 ]]; then
