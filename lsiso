@@ -6,16 +6,36 @@
 DEFAULT_SOURCES_DIR=/var/lib/srpmix7
 DEFAULT_CACHE_DIR=${DEFAULT_SOURCES_DIR}/isos
 
+# This script depends on the other scripts in srpmix7:
+#
+#
+LSMODSRPM=$(dirname $(realpath ${BASH_SOURCE}))/lsmodsrpm
+SRPMIX7=$(dirname $(realpath ${BASH_SOURCE}))/srpmix7
+
+# Examples of links:
+# - ^rhel-server-6-1-source-iso
+# - ^rhel-8-2-source-iso^module^stream
+
 help()
 {
     echo Usage:
-    echo "	lsiso download [--cache-dir CACHEDIR] rhelX.Y"
+    echo "	lsiso download [--binary|-b] [--cache-dir CACHEDIR] rhelX.Y"
     echo "	lsiso ls [--cache-dir CACHEDIR] rhelX.Y"
+    echo "	lsiso lsmodule [--cache-dir CACHEDIR] rhelX.Y"
+    echo "	lsiso lsstream [--cache-dir CACHEDIR] rhelX.Y module"
+    echo "	lsiso lssrpm [--cache-dir CACHEDIR] rhelX.Y module stream"
+    echo "	lsiso cat-modules-yaml [--cache-dir CACHEDIR] rhel8.Y"
+    echo "	lsiso ls-l [--cache-dir CACHEDIR] rhelX.Y"
     echo "	lsiso lslink [--cache-dir CACHEDIR] [--sources-dir SOURCES7UPPDERDIR] rhelX.Y"
+    echo "	lsiso lslink-l [--cache-dir CACHEDIR] [--sources-dir SOURCES7UPPDERDIR] rhelX.Y"
     echo
     echo Default values:
     echo "	CACHEDIR: ${DEFAULT_CACHE_DIR}"
     echo "	SOURCES7UPPDERDIR: ${DEFAULT_SOURCES_DIR}"
+    echo
+    echo Examples:
+    echo "	./lsiso lslink-l rhel8.2"
+    echo "	/srv/sources8/lsiso lslink-l --cache-dir /srv/sources8/isos --sources-dir /root/_rhel8 rhel8.1"
 }
 
 error()
@@ -37,7 +57,7 @@ dump_dnf_conf()
     local repo
 
     case "$distro" in
-	rhel8.*|rhel7.*)
+	rhel9.*|rhel8.*|rhel7.*)
 	    repo=rhel-8-for-x86_64-baseos-rpms
 	    ;;
 	*)
@@ -68,13 +88,35 @@ isonames()
 {
     local distro=$1
     local ver=${distro#rhel}
+    shift
+
+    local binary
+    if [[ "$1" == "-b" ]]; then
+	binary=-b
+	shift
+    fi
 
     case "$distro" in
+	rhel9.*)
+	    if [[ "$binary" == "-b" ]]; then
+		echo rhel-baseos-${ver}-x86_64-dvd.iso
+	    else
+		echo rhel-baseos-${ver}-source-dvd.iso
+	    fi
+	    ;;
 	rhel8.*)
-	    echo rhel-${ver}-source-dvd.iso
+	    if [[ "$binary" == "-b" ]]; then
+		echo rhel-${ver}-x86_64-dvd.iso
+	    else
+		echo rhel-${ver}-source-dvd.iso
+	    fi
 	    ;;
 	rhel7.*)
-	    echo rhel-server-${ver}-source-dvd{1,2}.iso
+	    if [[ "$binary" == "-b" ]]; then
+		echo rhel-server-${ver}-x86_64-dvd.iso
+	    else
+		echo rhel-server-${ver}-source-dvd{1,2}.iso
+	    fi
 	    ;;
 	*)
 	    error "Unknown distribution: $distro"
@@ -82,10 +124,33 @@ isonames()
     esac
 }
 
+distro2alias()
+{
+    # rhel8.1 -> rhel-8-1
+    local distro=$1
+    local module=$2
+    local stream=$3
+    local r
+
+    r=${distro/rhel/rhel-}
+    r=${r/./-}
+    r=${r}-source-iso
+
+    if [ -n "${module}" ]; then
+	r="${r}"'^'"${module}"
+	if [ -n "${stream}" ]; then
+		r="${r}"'^'"${stream}"
+	fi
+    fi
+
+    echo "${r}"
+}
+
 do_download()
 {
     local distro=$1
     local cache_dir=$2
+    local binary=$3
 
     make_cache_dir "${cache_dir}"
 
@@ -103,22 +168,40 @@ do_download()
 
     local base
     case "$distro" in
+	rhel9.*)
+	    if [[ -n "$binary" ]]; then
+		base=/content/dist/rhel9/${distro#rhel}/x86_64/baseos/iso
+	    else
+		base=/content/dist/rhel9/${distro#rhel}/x86_64/baseos/source/iso
+	    fi
+	    ;;
 	rhel8.*)
-	    base=/content/dist/rhel8/${distro#rhel}/x86_64/baseos/source/iso
+	    if [[ -n "$binary" ]]; then
+		base=/content/dist/rhel8/${distro#rhel}/x86_64/baseos/iso
+	    else
+		base=/content/dist/rhel8/${distro#rhel}/x86_64/baseos/source/iso
+	    fi
 	    ;;
 	rhel7.*)
-	    base=/content/dist/rhel/server/7/${distro#rhel}/x86_64/source/iso
+	    if [[ -n "$binary" ]]; then
+		base=/content/dist/rhel/server/7/${distro#rhel}/x86_64/iso
+	    else
+		base=/content/dist/rhel/server/7/${distro#rhel}/x86_64/source/iso
+	    fi
 	    ;;
 	*)
 	    error "Unknown distribution: $distro"
 	    ;;
     esac
 
-    local isonames=$(isonames "${distro}")
+    local isonames=$(isonames "${distro}" $binary)
     (
 	local isoname
 	cd ${cache_dir} &&
 	    for isoname in ${isonames}; do
+		if [[ -e ${isoname} ]]; then
+		    continue
+		fi
 		local url=https://cdn.redhat.com/"${base}"/"${isoname}"
 		curl --key "${key}" --cert "${cert}"  --cacert "${cacert}" -O "${url}"
 	    done
@@ -141,14 +224,13 @@ do_ls()
 
     for isoname in ${isonames}; do
 	isoinfo -fRJ -i "${cache_dir}/${isoname}"
-    done | grep src.rpm | xargs -n 1 basename
+    done | grep src.rpm | xargs -n 1 basename | sort | uniq
 }
 
-do_lslink()
+lslink0()
 {
     local distro=$1
     local cache_dir=$2
-    local sources_dir=$3
 
     local isonames=$(isonames "${distro}")
     local isoname
@@ -159,15 +241,213 @@ do_lslink()
 	fi
     done
 
-    local -r expander=srpm
-    local mntdir=/tmp/lsiso-$$-$(date --rfc-3339=date)
+    local mntdir=/tmp/lsiso-$$-$(date --rfc-3339=date)-mnt
     for isoname in ${isonames}; do
 	mkdir ${mntdir}
-	mount -o loop "${cache_dir}/${isoname}" ${mntdir} || error "failed to mount cached iso image: ${isoname} => ${mntdir}"
+	mount -o loop,ro "${cache_dir}/${isoname}" ${mntdir} || error "failed to mount cached iso image: ${isoname} => ${mntdir}"
 	find ${mntdir} -name '*.src.rpm' | while read; do
 	    local result=$(rpm -qp --queryformat "%{name}/%{version}-%{release}\n" $REPLY)
-	    echo ${result:0:1}/${result}--${expander}
-	    # ls -ld ${sources_dir}/sources/${result:0:1}/${result}--${expander}
+	    echo $(basename $REPLY) $result
+	done
+	umount ${mntdir}
+	rmdir ${mntdir}
+    done
+}
+
+do_lslink()
+{
+    local distro=$1
+    local cache_dir=$2
+
+    local -r expander=srpm
+    local dummy
+    local pathcomp
+    lslink0 "$distro" "${cache_dir}" | while read dummy pathcomp; do
+	echo ${pathcomp:0:1}/${pathcomp}--${expander}
+	# ls -ld ${sources_dir}/sources/${result:0:1}/${result}--${expander}
+    done
+}
+
+do_lslink-l()
+{
+    local distro=$1
+    local cache_dir=$2
+    local sources_dir=$3
+
+    local -A rpm2pathcomp
+    local -r expander=srpm
+    local rpm
+    local pathcomp
+    while read rpm pathcomp; do
+	rpm=${rpm%%.src.rpm}
+	rpm2pathcomp[$rpm]=${pathcomp}
+    done < <(lslink0 "${distro}" "${cache_dir}")
+
+    local -A srpm2alias
+
+    local m
+    local s
+    local a
+    for m in $(do_lsmodule "${distro}" "${cache_dir}"); do
+	for s in $(do_lsstream "${distro}" "${m}" "${cache_dir}"); do
+	    a=$(distro2alias ${distro} ${m} ${s})
+	    for rpm in $(do_lssrpm "${distro}" "${m}" "${s}" "${cache_dir}"); do
+		# Delete epoch component.
+		rpm=$(sed -e "s/[0-9]\+://" <<< $rpm)
+		# Drop the last .src
+		rpm=${rpm%%.src}
+		srpm2alias[$rpm]="${a}"
+	    done
+	done
+    done
+
+    local d=$(distro2alias ${distro})
+    for rpm in $(do_ls "${distro}" "${cache_dir}"); do
+	rpm=${rpm%%.src.rpm}
+	local dsp="${srpm2alias[$rpm]}"
+	if [ -n "${dsp}" ]; then
+	    a="${dsp}"
+	else
+	    a="${d}"
+	fi
+	pathcomp=${rpm2pathcomp[$rpm]}
+
+	cat<<-EOF
+	echo -n ${pathcomp}...
+	if test -d '${sources_dir}/sources/${pathcomp:0:1}/${pathcomp}--srpm'; then
+	   if test -e '${sources_dir}/sources/${pathcomp:0:1}/${pathcomp_upper}/^$a'; then
+	      echo link exists: '${sources_dir}/sources/${pathcomp:0:1}/${pathcomp_upper}/^$a'
+	   elif ${SRPMIX7} link --dont-set-xattr alias '$a' '${sources_dir}' '${pathcomp}--srpm'; then
+	      echo successful
+	   else
+	      echo error in srpmix7
+	   fi
+	else
+	   echo no directroy: '${sources_dir}/sources/${pathcomp:0:1}/${pathcomp}--srpm'
+	fi
+EOF
+	#local action=$(echo srpmix7 link alias "'""$a""'" "${sources_dir}" "'""${pathcomp}--srpm""'")
+	#local cond_start=$(echo if test -d "${sources_dir}"/sources/${pathcomp:0:1}/"'""${pathcomp}--srpm""'" '; then ')
+	#local cond_end=$(echo "; fi")
+	#echo "${cond_start}" "${action}" "${cond_end}"
+    done
+
+}
+
+do_lsmodule()
+{
+    local distro=$1
+    local cache_dir=$2
+
+    case "${distro}" in
+	rhel7.*)
+	    return 0;;
+    esac
+
+    if [[ ! -x "${LSMODSRPM}" ]]; then
+	error "cannot find lsmodsrpm command: ${LSMODSRPM}"
+    fi
+
+    local yaml=/tmp/lsiso-$$-$(date --rfc-3339=date)-modules.yaml
+    do_cat-modules-yaml "${distro}" "${cache_dir}" > $yaml
+    ${LSMODSRPM} $yaml list-modules
+    rm $yaml
+}
+
+do_lsstream()
+{
+    local distro=$1
+    local module=$2
+    local cache_dir=$3
+
+    if [[ ! -x "${LSMODSRPM}" ]]; then
+	error "cannot find lsmodsrpm command: ${LSMODSRPM}"
+    fi
+
+    local yaml=/tmp/lsiso-$$-$(date --rfc-3339=date)-modules.yaml
+    do_cat-modules-yaml "${distro}" "${cache_dir}" > $yaml
+    ${LSMODSRPM} $yaml list-streams $module
+    rm $yaml
+}
+
+do_lssrpm()
+{
+    local distro=$1
+    local module=$2
+    local stream=$3
+    local cache_dir=$4
+
+    if [[ ! -x "${LSMODSRPM}" ]]; then
+	error "cannot find lsmodsrpm command: ${LSMODSRPM}"
+    fi
+
+    local yaml=/tmp/lsiso-$$-$(date --rfc-3339=date)-modules.yaml
+    do_cat-modules-yaml "${distro}" "${cache_dir}" > $yaml
+    ${LSMODSRPM} $yaml list-srpms $module $stream
+    rm $yaml
+}
+
+do_ls-l()
+{
+    local distro=$1
+    local cache_dir=$2
+    local -A srpm2alias
+
+    local m
+    local s
+    local p
+    local a
+    for m in $(do_lsmodule "${distro}" "${cache_dir}"); do
+	for s in $(do_lsstream "${distro}" "${m}" "${cache_dir}"); do
+	    a=$(distro2alias ${distro} ${m} ${s})
+	    for p in $(do_lssrpm "${distro}" "${m}" "${s}" "${cache_dir}"); do
+		# Delete epoch component.
+		p=$(sed -e "s/[0-9]\+://" <<< $p)
+		# Drop the last .src
+		p=${p%%.src}
+		srpm2alias[$p]="${a}"
+	    done
+	done
+    done
+
+    local d=$(distro2alias ${distro})
+    for p in $(do_ls "${distro}" "${cache_dir}"); do
+	p=${p%%.src.rpm}
+	local dsp="${srpm2alias[$p]}"
+	if [ -n "${dsp}" ]; then
+	    a="${dsp}"
+	else
+	    a="${d}"
+	fi
+
+    done
+}
+
+do_cat-modules-yaml()
+{
+    local distro=$1
+    local cache_dir=$2
+
+    local isonames=$(isonames "${distro}" -b)
+    local isoname
+    for isoname in ${isonames}; do
+	if ! [ -r "${cache_dir}/${isoname}" ]; then
+	    do_download "${distro}" "${cache_dir}" -b
+	    break
+	fi
+    done
+
+    local mntdir=/tmp/lsiso-$$-$(date --rfc-3339=date)-mnt
+    for isoname in ${isonames}; do
+	mkdir ${mntdir}
+	mount -o loop,ro "${cache_dir}/${isoname}" ${mntdir} || error "failed to mount cached iso image: ${isoname} => ${mntdir}"
+	local yaml="${mntdir}/AppStream/repodata/*-modules.yaml.gz"
+	local y
+	for y in $yaml; do
+	    if [ -f $y ]; then
+		zcat < $y
+		break
+	    fi
 	done
 	umount ${mntdir}
 	rmdir ${mntdir}
@@ -182,7 +462,9 @@ do_action()
     local cache_dir=${DEFAULT_CACHE_DIR}
     local sources_dir
 
-    if [ "${action}" = "lslink" ]; then
+    local binary=
+
+    if [ "${action}" = "lslink" ] || [ "${action}" = "lslink-l" ]; then
 	sources_dir=${DEFAULT_SOURCES_DIR}
     fi
 
@@ -197,11 +479,18 @@ do_action()
 		shift
 		;;
 	    --sources-dir)
-		if [ "${action}" != "lslink" ]; then
+		if [ "${action}" != "lslink" ] && [ "${action}" != "lslink-l" ]; then
 		    error "no such option in ${action} command: $1"
 		fi
 		shift
 		sources_dir=$1
+		shift
+		;;
+	    --binary|-b)
+		if [ "${action}" != "download" ]; then
+		    error "no such option in ${action} command: $1"
+		fi
+		binary=-b
 		shift
 		;;
 	    -*)
@@ -215,16 +504,28 @@ do_action()
 
     if [ $# -lt 1 ]; then
 	error "no distribution specified"
-    elif [ $# -gt 1 ]; then
+    elif [ "${action}" != "lsstream" ] && [ "${action}" != "lssrpm" ] && [ $# -gt 1 ]; then
 	error "too many arguments"
     fi
 
     local distro=$1
     shift
 
+    local module=
+    if [ "${action}" = "lsstream" ] || [ "${action}" = "lssrpm" ]; then
+	module=$1
+	shift
+    fi
+
+    local stream=
+    if [ "${action}" = "lssrpm" ]; then
+	stream=$1
+	shift
+    fi
+
     case "$distro" in
-	rhel8.*|rhel7.*)
-	    do_${action} ${distro} ${cache_dir} ${sources_dir}
+	rhel9.*|rhel8.*|rhel7.*)
+	    do_${action} ${distro} ${module} ${stream} ${cache_dir} ${sources_dir} ${binary}
 	    ;;
 	rhel*)
 	    error "No support for $distro"
@@ -249,7 +550,7 @@ main()
 	    help
 	    exit 0
 	    ;;
-	download|ls|lslink)
+	download|bdownload|ls|lslink|lsmodule|lsstream|lssrpm|ls-l|lslink-l|cat-modules-yaml)
 	    do_action "${action}" "$@"
 	    ;;
 	*)
