@@ -1,0 +1,40 @@
+#!/bin/python3
+
+# required packages: modulemd-tools.noarch
+
+import gi
+gi.require_version("Modulemd", "2.0")
+from gi.repository import Modulemd
+
+import sys
+import argparse
+
+# lsmodsrpm YAMLFILE list-modules
+# lsmodsrpm YAMLFILE list-streams module
+# lsmodsrpm YAMLFILE list-srpms module stream
+
+md_file = sys.argv[1]
+
+index = Modulemd.ModuleIndex.new()
+index.update_from_file (md_file, True)
+
+action = sys.argv[2];
+if action == 'list-modules':
+    for m in index.get_module_names():
+        print(m)
+    sys.exit(0)
+
+if action == 'list-streams':
+    module = sys.argv[3]
+    for s in index.get_module(module).get_stream_names():
+        print(s)
+    sys.exit(0)
+
+if action == 'list-srpms':
+    module = sys.argv[3]
+    stream = sys.argv[4]
+    for s in index.get_module(module).get_streams_by_stream_name(stream):
+        for a in s.get_rpm_artifacts():
+            if a.endswith('.src'):
+                print(a)
+    sys.exit(0)
