@@ -1853,6 +1853,7 @@ updates-modular
 
 DISTRO_docker_files[fedora36]='
 FROM docker.io/library/fedora:36
+RUN dnf -y update
 RUN dnf -y install zsh rpm-build dnf-plugins-core
 RUN dnf -y install gcc annobin
 RUN dnf -y install git
