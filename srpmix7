@@ -2352,6 +2352,53 @@ COPY ./srpmix7 /usr/bin/srpmix7
 '
 
 #
+# rhel7sat
+#
+DISTRO_stype[rhel7sat6r11]=yds
+DISTRO_expander[rhel7sat6r11]=srpm
+DISTRO_srepos[rhel7sat6r11]=${DISTRO_srepos[rhel7]}
+DISTRO_srepos[rhel7sat6r11]+='
+rhel-7-server-satellite-6.11-source-rpms
+rhel-7-server-satellite-capsule-6.11-source-rpms
+rhel-7-server-satellite-client-6-source-rpms
+rhel-7-server-satellite-maintenance-6-source-rpms
+rhel-7-server-satellite-maintenance-6.11-source-rpms
+rhel-7-server-satellite-utils-6.11-source-rpms
+'
+DISTRO_brepos[rhel7sat6r11]=${DISTRO_brepos[rhel7]}
+DISTRO_brepos[rhel7sat6r11]+='
+rhel-7-server-satellite-6.11-rpms
+rhel-7-server-satellite-capsule-6.11-rpms
+rhel-7-server-satellite-client-6-rpms
+rhel-7-server-satellite-maintenance-6-rpms
+rhel-7-server-satellite-maintenance-6.11-rpms
+rhel-7-server-satellite-utils-6.11-rpms
+'
+DISTRO_docker_files[rhel7sat6r11]='
+FROM registry.redhat.io/ubi7/ubi
+
+#include "srpmix7.dockerfile"
+RUN yum-config-manager --disable rhel-7-server-htb-rpms || :
+RUN yum-config-manager --disable rhel-7-server-htb-source-rpms || :
+RUN yum repolist all
+
+RUN yum -y install zsh rpm-build yum-utils deltarpm
+RUN yum -y install gcc gcc-c++ annobin git rubygems make autoconf automake gettext-devel dos2unix libtool
+RUN yum -y install libselinux-utils xorg-x11-server-source javapackages-tools ocaml-ocamlbuild
+RUN yum -y install --enablerepo=rhel-server-rhscl-7-rpms rh-nodejs4-build
+RUN yum -y install autoconf-archive
+
+RUN : for SCL : yum -y install rh-java-common-PyXB.noarch maven-artifact maven30-maven-artifact rh-maven33-maven-artifact rh-maven36-maven-artifact  maven-local
+RUN yum -y install libxml2-devel
+
+RUN yum makecache
+
+COPY ./hooks /hooks
+COPY ./srpmix7 /usr/bin/srpmix7
+'
+
+
+#
 # rhel7x
 #
 DISTRO_stype[rhel7x]=yds
