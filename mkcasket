@@ -29,8 +29,13 @@ error()
 select_pkgs()
 {
     local x
+    local y
     for x in {0..9} {a..z} {A..Z}; do
-	ls ${ROOT}/sources/$x/*/*/info/podman-srpm-distro.d/$1
+	for y in ${ROOT}/sources/$x/*/*/info/podman-srpm-distro.d/$1; do
+	    if [[ -e "$y" ]]; then
+		echo "$y"
+	    fi
+	done
     done| grep -v '/\^' \
 	| sed -e 's|\(.*\)/info/podman-srpm-distro.d/.*$|\1|'
 }
