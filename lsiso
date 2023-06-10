@@ -97,14 +97,14 @@ isonames()
     fi
 
     case "$distro" in
-	rhel9.*)
+	rhel9.[01])
 	    if [[ "$binary" == "-b" ]]; then
 		echo rhel-baseos-${ver}-x86_64-dvd.iso
 	    else
 		echo rhel-baseos-${ver}-source-dvd.iso
 	    fi
 	    ;;
-	rhel8.*)
+	rhel8.*|rhel9.*)
 	    if [[ "$binary" == "-b" ]]; then
 		echo rhel-${ver}-x86_64-dvd.iso
 	    else
