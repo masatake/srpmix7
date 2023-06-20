@@ -2289,7 +2289,7 @@ rhel-9-for-x86_64-appstream-rpms
 rhel-9-for-x86_64-baseos-rpms
 '
 DISTRO_docker_files[rhel9]='
-FROM registry.redhat.io/ubi9/ubi
+FROM registry.access.redhat.com/ubi9/ubi
 RUN dnf -y install zsh rpm-build yum-utils
 RUN dnf -y install gcc annobin
 RUN dnf config-manager --set-enabled rhel-9-for-x86_64-appstream-rpms
@@ -2327,7 +2327,7 @@ rhel-8-for-x86_64-baseos-rpms
 rhel-8-for-x86_64-rt-rpms
 '
 DISTRO_docker_files[rhel8rt]='
-FROM registry.redhat.io/ubi8/ubi
+FROM registry.access.redhat.com/ubi8/ubi
 RUN dnf -y install zsh rpm-build yum-utils
 RUN dnf -y install gcc annobin
 RUN dnf config-manager --set-enabled rhel-8-for-x86_64-appstream-rpms
@@ -2367,7 +2367,7 @@ rhel-8-for-x86_64-appstream-rpms
 rhel-8-for-x86_64-baseos-rpms
 '
 DISTRO_docker_files[rhel8]='
-FROM registry.redhat.io/ubi8/ubi
+FROM registry.access.redhat.com/ubi8/ubi
 RUN dnf -y install zsh rpm-build yum-utils
 RUN dnf -y install gcc annobin
 RUN dnf config-manager --set-enabled rhel-8-for-x86_64-appstream-rpms
@@ -2407,7 +2407,7 @@ rhel-7-server-optional-rpms
 rhel-7-server-extras-rpms
 '
 DISTRO_docker_files[rhel7]='
-FROM registry.redhat.io/ubi7/ubi
+FROM registry.access.redhat.com/ubi7/ubi
 
 #include "srpmix7.dockerfile"
 RUN yum-config-manager --disable rhel-7-server-htb-rpms || :
@@ -2450,7 +2450,7 @@ rhel-7-server-satellite-maintenance-6.11-rpms
 rhel-7-server-satellite-utils-6.11-rpms
 '
 DISTRO_docker_files[rhel7sat6r11]='
-FROM registry.redhat.io/ubi7/ubi
+FROM registry.access.redhat.com/ubi7/ubi
 
 #include "srpmix7.dockerfile"
 RUN yum-config-manager --disable rhel-7-server-htb-rpms || :
@@ -2491,7 +2491,7 @@ rhel-ha-for-rhel-7-server-rpms
 rhel-rs-for-rhel-7-server-rpms
 '
 DISTRO_docker_files[rhel7x]='
-FROM registry.redhat.io/ubi7/ubi
+FROM registry.access.redhat.com/ubi7/ubi
 
 #include "srpmix7.dockerfile"
 RUN yum-config-manager --disable rhel-7-server-htb-rpms || :
