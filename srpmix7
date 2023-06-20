@@ -2962,6 +2962,7 @@ i_podman-srpm-expand_run()
     local overwrite_even_if_incomplete
     local xargs
     local use_syslog
+    local orig_args="$*"
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -3020,7 +3021,7 @@ i_podman-srpm-expand_run()
     done
 
     if [[ $# -ne 3 ]]; then
-	-E- "$c: three arguments are expected"
+	-E- "$c: three (distro, pkg, ddir) arguments are expected: $orig_args"
     fi
 
     local distro=$1
