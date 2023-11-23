@@ -4604,10 +4604,8 @@ x_dest_dir_transfer()
 		s=1
 		break
 	    fi
-	elif ! cp -r $x "${dest}"; then
-	    # just copy
-	    s=1
-	    break
+	elif ! cp -ra $x "${dest}"; then
+	    echo "cmdline: cp -ra $x ${dest}" 1>&2
 	fi
     done
 
