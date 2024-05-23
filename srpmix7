@@ -2531,11 +2531,16 @@ ICMD_DESC[podman-image-build]="build container image for expanding source code"
 i_podman-image-build_help()
 {
     local k
-    =printf "%s\n" "$SELF podman-image-build DISTRO"
-    =printf "%s\n" "$SELF podman-image-build [OPTIONS]"
-    echo "OPTIONS:"
+    =printf "%s\n" "$SELF podman-image-build [BOPTIONS] DISTRO"
+    =printf "%s\n" "$SELF podman-image-build [LOPTIONS]"
+    echo "BOPTIONS:"
     {
 	echo "	--dont-overwrite|-a"
+	echo "	--no-cache"
+    }
+
+    echo "LOPTIONS:"
+    {
 	echo "	--list-buildable|-l"
     }
 
@@ -2552,6 +2557,7 @@ i_podman-image-build_run()
     local opt
     local next
     local dont_overwrite=0
+    local no_cache=0
 
     while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -2574,6 +2580,10 @@ i_podman-image-build_run()
 		    echo $k
 		done
 		return 0
+		;;
+	    (--no-cache|-n)
+		no_cache=1
+		shift 1
 		;;
 	    (-*)
 		-E- "$c: unknown option: $1"
@@ -2659,9 +2669,13 @@ i_podman-image-build_run()
 	chmod a+x $hook_file
     done
 
+    local no_cache_opt
+    if [[ "$no_cache" == 1 ]]; then
+	no_cache_opt=--no-cache
+    fi
     (
 	cd $tmpdir
-	podman build -f $tmpdir/Dockerfile.in -t srpmix7-${distro} . \
+	podman build ${no_cache_opt} -f $tmpdir/Dockerfile.in -t srpmix7-${distro} . \
 	    && rm -rf "$tmpdir"
     )
 
@@ -4913,6 +4927,7 @@ x_expand_srpm_run()
 
 	if [[ -f "${t_spec[1]}" ]]; then
 	    mv "${t_spec[1]}"   $t/$p_info/${t_spec[1]:t}
+	    chmod a+r $t/$p_info/${t_spec[1]:t}
 	    ln -r -s $t/$p_info/${t_spec[1]:t} $t/${p_srpm_spec}
 	fi
 
