@@ -3165,7 +3165,7 @@ podman_publish_maybe()
 	r=1
     else
 	local derror=${destdir}/${P_podman_errors}
-	local dperror=${derror}/${pkg}
+	local dperror=${derror}/${pkg:0:1}/${pkg}
 	local dpderror=${dperror}/${distro}-$(date --rfc-3339=date)
 	mkdir -p "${dperror}"
 	mv "${tmp_srcdir}" "${dpderror}"
