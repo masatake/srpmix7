@@ -1,0 +1,8 @@
+#!/bin/zsh
+
+ROOT=/var/lib/srpmix7/sources
+
+for x in /var/lib/srpmix7/sources/*/*; do
+    echo $x
+done | parallel hardlink -c '{}/*/pre-build' '{}/*/archives'
+
