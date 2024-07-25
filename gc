@@ -1,0 +1,26 @@
+#!/bin/zsh
+
+ROOT=/var/lib/srpmix7/sources
+
+for c in {0..9} {a..z} {A..Z}; do
+    d=$ROOT/$c
+    [[ ! -d "$d" ]] || continue
+    (
+	cd $d
+	for p in *(N); do
+	    (
+		cd $p
+		if [[ $(ls -d *fc[1-9][0-9]--srpm(N) | wc -l) == 1 ]]; then
+		    exit
+		else
+		    for vr in $(ls -d *fc[1-9][0-9]--srpm(N) | sed -e 's/\(.*\)--srpm$/'"$p"'-\1/' | rpmdev-sort | head -n -1); do
+			vr=${vr#"${p}-"}--srpm
+			t="$(pwd)/$vr"
+			echo "# remove" "$t"
+			rm -rf "$t"
+		    done
+		fi
+	    )
+	done
+    )
+done |& tee gc-$(date --rfc-3339=date).log 
