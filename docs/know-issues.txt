@@ -1,0 +1,5 @@
+[root@srpmix7-dev192 kernel]# attr -q -l  4.18.0-147.el8--srpm
+selinux
+srpmix7-ref-link-rhel-8-1-source-iso
+
+This should be srpmix7-ref-alias-rhel-8-1-source-iso.
