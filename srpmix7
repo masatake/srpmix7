@@ -1828,6 +1828,78 @@ COPY ./srpmix7 /usr/bin/srpmix7
 '
 
 #
+# fedora39
+#
+DISTRO_stype[fedora39]=dds
+DISTRO_expander[fedora39]=srpm
+DISTRO_srepos[fedora39]="
+fedora-source
+updates-source
+"
+#updates-testing-modular-source
+#updates-testing-source
+
+DISTRO_brepos[fedora39]="
+fedora
+fedora-cisco-openh264
+updates
+"
+# updates-testing
+# updates-testing-modular
+
+DISTRO_docker_files[fedora39]='
+FROM docker.io/library/fedora:39
+RUN dnf -y update
+RUN dnf -y install zsh rpm-build dnf-plugins-core
+RUN dnf -y install gcc
+RUN dnf -y install git
+RUN dnf -y install R-rpm-macros.noarch blender-rpm-macros.noarch build2-rpm-macros.noarch cargo-rpm-macros.noarch cmake-rpm-macros.noarch erlang-rpm-macros.noarch fedora-rpm-macros.noarch flatpak-rpm-macros.x86_64 folly-rpm-macros.noarch fonts-rpm-macros.noarch gap-rpm-macros.x86_64 ghc-rpm-macros.noarch go-rpm-macros.x86_64 kde-apps-rpm-macros.noarch kernel-rpm-macros.noarch kf5-rpm-macros.noarch lua-rpm-macros.noarch postgresql-test-rpm-macros.noarch pyproject-rpm-macros.noarch python-pyqt6-rpm-macros.noarch python-qt5-rpm-macros.noarch python-rpm-macros.noarch python3-rpm-macros.noarch qt5-rpm-macros.noarch qt6-rpm-macros.noarch rpmautospec-rpm-macros.noarch systemd-rpm-macros.noarch zig-rpm-macros.noarch
+
+RUN dnf -y install autoconf automake gettext-devel libtool make intltool
+RUN dnf -y install javapackages-local javapackages-tools
+RUN dnf -y install fontconfig perl rubygems libselinux-utils dos2unix
+RUN dnf -y install xorg-x11-server-devel intltool java-latest-openjdk-devel python2
+RUN dnf -y install glib2-devel
+RUN dnf -y install fedora-packager
+
+#include "srpmix7.dockerfile"
+
+RUN dnf -y install R-rpm-macros cabal-rpm erlang-rpm-macros fedora-rpm-macros flatpak-rpm-macros ghc-rpm-macros go-rpm-macros javapackages-local javapackages-tools lxqt-build-tools maven-local multilib-rpm-config nodejs-packaging obs-service-rust2rpm php-pear-PEAR-Command-Packaging pyproject-rpm-macros python-packaging python-rpm-macros python3-javapackages python3-packaging python3-rdopkg rubygems rubygems-devel rust-packaging scl-utils scl-utils-build web-assets-devel
+
+RUN dnf -y install ocaml-ocamlbuild ocaml-runtime
+
+RUN dnf repolist --all
+RUN dnf -y makecache
+
+COPY ./hooks /hooks
+COPY ./srpmix7 /usr/bin/srpmix7
+'
+
+DISTRO_hook_scripts[fedora39/expander_srpm/before-builddep]='
+#!/bin/zsh
+typeset -a REPOS
+REPOS=('"
+${DISTRO_brepos[fedora39]}
+"')
+dnf config-manager --set-disabled ''*''
+for r in "${REPOS[@]}"; do
+    dnf config-manager --set-enabled $r
+done
+'
+
+DISTRO_hook_scripts[fedora39/stype_dds/before-download]='
+#!/bin/zsh
+typeset -a REPOS
+REPOS=('"
+${DISTRO_srepos[fedora39]}
+"')
+dnf config-manager --set-disabled ''*''
+for r in "${REPOS[@]}"; do
+    dnf config-manager --set-enabled $r
+done
+'
+
+#
 # fedora38
 #
 DISTRO_stype[fedora38]=dds
