@@ -590,7 +590,7 @@ i_link_help()
 
     echo "Example:"
     echo
-    echo "	$SELF link alias rhel-server-7-6-source-iso /var/lib/srpmix7 kernel/3.10.0-957.el7--srpm"
+    echo "	\$ $SELF link alias rhel-server-7-6-source-iso /var/lib/srpmix7 kernel/3.10.0-957.el7--srpm"
     echo
 }
 
@@ -3720,7 +3720,15 @@ i_expand_help()
     for k in ${(k)EXPANDER}; do
 	=printf "%-10s	%s\n" $k "${EXPANDER[$k]}" | indent
     done
+    echo
 
+    echo "Example:"
+
+    echo "	\$ mkdir -p \$HOME/my-code-base/golang"
+    echo "	\$ $SELF expand --stype=yds --sloc=golang --dtype=dir --dloc=\$HOME/my-code-base/golang srpm"
+    echo "	\$ ls \$HOME/my-code-base/golang"
+    echo "	archives _bundles info _log.tar.xz pre-build srpm.spec _status SUCCESSFUL _uname"
+    echo
 }
 
 #
@@ -4305,7 +4313,7 @@ x_src_apts_help()
     echo "	... expand --stype=apts --sloc=NAME ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=apts --sloc=postfix --dtype=dir --dloc=/tmp deb"
+    echo "	\$ $SELF expand --stype=apts --sloc=postfix --dtype=dir --dloc=/tmp deb"
 }
 
 x_src_apts_postcheck()
@@ -4362,7 +4370,7 @@ x_src_npm_help()
     echo "	... expand --stype=npm --sloc=NAME ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=npm --sloc=uniator --dtype=dir --dloc=/tmp vanilla"
+    echo "	\$ $SELF expand --stype=npm --sloc=uniator --dtype=dir --dloc=/tmp vanilla"
 }
 
 x_src_npm_transfer()
@@ -4396,7 +4404,7 @@ x_src_file_help()
     echo "	... expand --stype=file --sloc=FILE ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=file --sloc=/tmp/coreutils-8.22-11.el7.src.rpm --dtype=dir --dloc=/tmp srpm"
+    echo "	\$ $SELF expand --stype=file --sloc=/tmp/coreutils-8.22-11.el7.src.rpm --dtype=dir --dloc=/tmp srpm"
 }
 x_src_file_precheck()
 {
@@ -4537,9 +4545,9 @@ x_src_dds_help()
     echo "	... expand --stype=dds --sloc=\[REPO\]NAME ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=dds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
-    echo "	srpmix7 expand --stype=dds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
-    echo "	srpmix7 expand --stype=dds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
+    echo "	\$ $SELF expand --stype=dds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	\$ $SELF expand --stype=dds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	\$ $SELF expand --stype=dds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
 
     print_available_hooks stype_dds
 }
@@ -4610,9 +4618,9 @@ x_src_yds_help()
     echo "	... expand --stype=yds --sloc=\[REPO\]NAME ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=yds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
-    echo "	srpmix7 expand --stype=yds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
-    echo "	srpmix7 expand --stype=yds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
+    echo "	\$ $SELF expand --stype=yds --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	\$ $SELF expand --stype=yds --sloc=coreutils --dtype=dir --dloc=/tmp srpm"
+    echo "	\$ $SELF expand --stype=yds --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp srpm"
 
     print_available_hooks stype_yds
 }
@@ -4683,9 +4691,9 @@ x_src_yd_help()
     echo "	... expand --stype=yd --sloc=\[REPO\]NAME ..."
 
     echo "Example:"
-    echo "	srpmix7 expand --stype=yd --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp brpm"
-    echo "	srpmix7 expand --stype=yd --sloc=coreutils --dtype=dir --dloc=/tmp brpm"
-    echo "	srpmix7 expand --stype=yd --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp brpm"
+    echo "	\$ $SELF expand --stype=yd --sloc=[rhel-7-server-source-rpms]coreutils --dtype=dir --dloc=/tmp brpm"
+    echo "	\$ $SELF expand --stype=yd --sloc=coreutils --dtype=dir --dloc=/tmp brpm"
+    echo "	\$ $SELF expand --stype=yd --sloc=coreutils-8.22-11.el7 --dtype=dir --dloc=/tmp brpm"
 }
 
 x_src_yd_precheck()
