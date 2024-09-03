@@ -5113,6 +5113,10 @@ x_expand_srpm_clean_patch_backup_files()
     local patched_file
     local backup_file
     local f
+
+    # TODO /srv/sources9c/sources/r/rust-bootupd/^rhel-9-4-source-iso/srpm.spec
+    # Patch0: 0001-grub2-source-in-a-console.cfg-file-if-exists.patch
+    # %autosetup -n %{crate}-%{version} -p1
     while IFS= read -r; do
 	if [[ "$REPLY" =~ '.*/patch[[:space:]]{1,}.*[[:space:]]{1,}--suffix[[:space:]]{1,}([^[:space:]]{1,}).*' ]]; then
 	    suffix=${REPLY[${mbegin[1]}, ${mend[1]}]}
