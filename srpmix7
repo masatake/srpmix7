@@ -3703,7 +3703,7 @@ i_expand_help()
 	echo "	--help-expander=EXPANDER"
 	echo "	--help-stype=STYPE"
 	echo "	--help-dtype=DTYPE"
-	echo "  --use-var-tmp"
+	echo "	--use-var-tmp"
 	echo "	--hookdir=DIR"
     }
     echo "STYPE:"
