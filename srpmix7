@@ -577,7 +577,7 @@ i_link_help()
 	echo "	--action-when-error=abort|continue*"
 	echo "	--debug"
 	echo "	--trace"
-	echo "  --dont-set-xattr"
+	echo "	--dont-set-xattr"
     }
     echo
 
@@ -3659,7 +3659,7 @@ i_srpm-list_run()
 
     pkg_qsort pkg_ver_comp $t $(for v in $t/*-${expander}(N); do
 				    if [[ -n "${distro}"
-				  && ! -e "$v/${p_info_podman_srpm_distro_D}/${distro}" ]]; then
+				      && ! -e "$v/${p_info_podman_srpm_distro_D}/${distro}" ]]; then
 					continue
 				    fi
 				    echo $(basename "$v")
