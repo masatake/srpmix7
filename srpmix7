@@ -66,6 +66,7 @@ readonly -x p_uname_version=$p_uname/version
 readonly -x p_log=_log
 readonly -x p_stmp=__src_tmp
 readonly -x p_info_podman_srpm_distro_D=${p_info}/podman-srpm-distro.d
+readonly -x p_lcopy_default_branch=lcopy
 #
 # Too long directory name for expander makes expanding the source
 # code of systemd failure; the long name makes command line
@@ -78,6 +79,7 @@ readonly -x p_bundle_log=_log
 readonly -x p_bundle_uname=_uname
 
 readonly -x p_srpm_spec=srpm.spec
+readonly -x p_lcopy_lcopy=lcopy.lcopy
 
 readonly -x s_unknown=unknown
 readonly -x s_successful=successful
@@ -1654,6 +1656,9 @@ d_dir_deploy()
 	case "${src}" in
 	    (*.src.rpm)
 		expander=srpm
+		;;
+	    (*.lcopy)
+		expander=lcopy
 		;;
 	    (*)
 		progress_report ${r_unknown_file}
@@ -3672,6 +3677,150 @@ i_srpm-list_run()
 
 #
 #
+# Subcommand: lcopy-deploy
+#
+#
+ICMD+=lcopy-deploy
+ICMD_DESC[lcopy-deploy]="..."
+REQUIREMENTS[lcopy-deploy]="git"
+
+i_lcopy-deploy_help()
+{
+    =printf "%s\n" "$SELF lcopy-deploy [OPTIONS] LCOYD-DIR"
+
+    echo "OPTIONS:"
+    {
+	echo "	--root-directory|-/ DIR"
+	echo "		default: /var/lib/${prefix}"
+    }
+}
+
+lcopy_pkg()
+{
+    local lcopy=$1
+
+    if ! [[ -e "$lcopy" ]]; then
+	return 1
+    fi
+
+    if ! [[ -f "$lcopy" ]]; then
+	return 2
+    fi
+
+    if ! [[ -r "$lcopy" ]]; then
+	return 3
+    fi
+
+    (
+	source "$lcopy"
+	if [[ -z "$LCOPY_PACKAGE" ]]; then
+	    exit 4
+	fi
+	echo "$LCOPY_PACKAGE"
+	exit 0
+    )
+    return $?
+}
+
+i_lcopy-deploy_run()
+{
+    local c=${${0#i_}%_run}
+    local rdir=/var/lib/${prefix}
+    local lcopyd
+    local lcopy
+    local pkg
+    local t
+    local tmp_dest
+    local branch
+    local dest
+    local expander=lcopy
+    local r
+
+    while [[ $# -gt 0 ]]; do
+	case "$1" in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (-/|--root-directory)
+		if [[ -z "$2" ]]; then
+		    -E- "$c: no directory name is given for $1 option"
+		fi
+		rdir=$2
+		shift 2
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    if [[ $# -eq 0 ]]; then
+	-E- "$c: no lcopy.d directory name is given"
+    elif [[ $# -gt 1 ]]; then
+	-E- "$c: cannot handle multiple lcopy.d directories at once: $@"
+    fi
+    lcopyd=$1
+    shift 1
+
+    if [[ -z "$lcopyd" ]]; then
+	-E- "$c: no package name is given"
+    fi
+    if [[ ! -d "$lcopyd" ]]; then
+	-E- "$c: lcopy.d doesn't exist: $lcopyd"
+    fi
+
+    if [[ ! -d "$rdir" ]]; then
+	-E- "$c: rootdir doesn't exist: $rdir"
+    fi
+
+    for lcopy in $lcopyd/**/*.lcopy(N); do
+	echo -n $lcopy... 1>&2
+	if ! pkg=$(lcopy_pkg "$lcopy"); then
+	    -W- "no LCOPY_PACKAGE found in $lcopy"
+	    continue
+	fi
+
+	t="${rdir}/${P_sources}/$(name_prefix $pkg)/$pkg"
+	if [[ ! -d "$t" ]]; then
+	    -W- "no package dir for $lcopy: $t"
+	    continue
+	fi
+
+	tmp_dest=$t/${p_stmp}--${expander}
+	if ! mkdir -p "${tmp_dest}"; then
+	    -W- "failed to create \"${tmp_dest}\" directory"
+	    continue
+	fi
+
+	subcommand_run expand --stype file --sloc "$lcopy" --dtype dir --dloc ${tmp_dest} ${expander} < /dev/null
+	r=$?
+	branch=$(
+	    cd ${tmp_dest}/${p_archives}
+	    git branch --contains | cut -d ' ' -f 2
+	)
+	branch=${branch:-${p_lcopy_default_branch}}
+	dest=$t/${branch}--${expander}
+	mv "${tmp_dest}" "${dest}"
+	(
+	    cd $t
+	    ln -f -s -r "${dest}" "^${expander}"
+	)
+	echo "$r" 1>&2
+    done
+}
+
+#
+#
 # Subcommand: expand
 #
 #
@@ -5169,8 +5318,21 @@ x_expand_lcopy_run()
     echo $s > "$t/$p_log/x_lcopy-checkout.status"
     cp ${lcopy} $t/$p_info/_.lcopy
     if ! is_empty_dir "$t/$p_xtmp"; then
-	mv $t/$p_xtmp/*      $t/$p_archives
+	mv $t/$p_xtmp/{*(N),.*(N)} $t/$p_archives
     fi
+
+    if is_empty_dir "$t/$p_pre_build"; then
+	if rmdir "$t/$p_pre_build"; then
+	    (
+		cd $t
+		ln -f -s -r "$p_archives" "$p_pre_build"
+	    )
+	fi
+    fi
+    (
+	cd $t
+	ln -f -s -r "$p_info/_.lcopy" "${p_lcopy_lcopy}"
+    )
 
     if [[ $s != 0 ]]; then
 	=printf "%s (%s: %s)\n" $s_incomplete $(lcopy_describe_error $s) ${lcopy:t} \
@@ -5298,6 +5460,7 @@ readonly lcopy_git_cf_version=0.0.1
 
 readonly lcopy_error_wrong_syntax=1
 readonly lcopy_error_undefined_value=2
+readonly lcopy_failed_in_checkout=3
 
 typeset -a LCOPY_ERROR
 LCOPY_ERROR=(
