@@ -3824,6 +3824,90 @@ i_lcopy-deploy_run()
 
 #
 #
+# Subcommand: lcopy-update
+#
+#
+ICMD+=lcopy-update
+ICMD_DESC[lcopy-update]="..."
+REQUIREMENTS[lcopy-update]="git"
+
+i_lcopy-update_help()
+{
+    =printf "%s\n" "$SELF lcopy-update [OPTIONS]"
+
+    echo "OPTIONS:"
+    {
+	echo "	--root-directory|-/ DIR"
+	echo "		default: /var/lib/${prefix}"
+    }
+}
+
+i_lcopy-update_run()
+{
+    local c=${${0#i_}%_run}
+    local rdir=/var/lib/${prefix}
+
+    local t
+    local tmp_dest
+    local branch
+    local dest
+    local expander=lcopy
+    local r
+
+    while [[ $# -gt 0 ]]; do
+	case "$1" in
+	    (--help|-h)
+		i_${c}_help
+		return 0
+		;;
+	    (--[^=]#=*)
+		opt=${1%%=*}
+		next=${1#*=}
+		shift 1
+		set -- "$opt" "$next" "$@"
+		;;
+	    (-/|--root-directory)
+		if [[ -z "$2" ]]; then
+		    -E- "$c: no directory name is given for $1 option"
+		fi
+		rdir=$2
+		shift 2
+		;;
+	    (-*)
+		-E- "$c: unknown option: $1"
+		;;
+	    (*)
+		break
+		;;
+	esac
+    done
+
+    if [[ $# -ne 0 ]]; then
+	-E- "$c: unexpecte argument"
+    fi
+
+    for t in "${rdir}/${P_sources}"/*/*/'^lcopy'; do
+	local lcopy="$t/${p_lcopy_lcopy}"
+	local archives="$t/archives"
+
+	if [[ ! -e "$lcopy" ]]; then
+	    continue
+	fi
+
+	if [[ ! -r "$lcopy" ]]; then
+	    continue
+	fi
+
+	if [[ ! -f "$lcopy" ]]; then
+	    continue
+	fi
+
+	lcopy_update "$lcopy" "$archives"
+    done
+}
+
+#
+#
 # Subcommand: expand
 #
 #
@@ -5521,6 +5605,39 @@ lcopy_checkout()
     case "$vcs" in
 	(git)
 	    lcopy_${vcs}_checkout "$@"
+	    ;;
+	(*)
+	    ;;
+    esac
+}
+
+lcopy_git_update()
+{
+    local input=$1
+    local dir=$2
+
+    (
+	cd "$dir"
+	pwd
+	git pull
+    )
+}
+
+lcopy_update()
+{
+    local lcopy=$1
+    local archives=$2
+    local vcs
+
+    if ! vcs=$( source "${lcopy}" && echo "$LCOPY_VCS" ); then
+	return ${lcopy_error_wrong_syntax}
+    elif [[ -z "${vcs}" ]]; then
+	return ${lcopy_error_undefined_value}
+    fi
+
+    case "$vcs" in
+	(git)
+	    lcopy_${vcs}_update "$lcopy" "$archives"
 	    ;;
 	(*)
 	    ;;

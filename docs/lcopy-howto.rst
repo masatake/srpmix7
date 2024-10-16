@@ -12,3 +12,10 @@ lcopy bulk
 
    # ./srpmix7 lcopy-deploy -/ /srv/sources ~/var/upstream/lcopy.d
    # chown -R yamato:yamato /srv/sources/sources/*/*/\^lcopy/archives
+
+update the local copies
+========================
+::
+
+   # ./srpmix7 lcopy-update -/ /srv/sources
+   # chown -R yamato:yamato /srv/sources/sources/*/*/\^lcopy/archives
