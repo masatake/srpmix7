@@ -28,7 +28,7 @@ readonly c_version=7.0.0
 readonly UCTAGS=${UCTAGS:-~/bin/u-ctags}
 
 # Avoid interaction when running git
-readonly SSH_ASKPASS=echo
+readonly -x SSH_ASKPASS=echo
 
 #
 # TODO
