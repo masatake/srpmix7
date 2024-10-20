@@ -2550,10 +2550,9 @@ COPY ./srpmix7 /usr/bin/srpmix7
 #
 # rhel8sat
 #
-DISTRO_stype[rhel8sat6r15]=yds
+DISTRO_stype[rhel8sat6r15]=dds
 DISTRO_expander[rhel8sat6r15]=srpm
-DISTRO_srepos[rhel8sat6r15]=${DISTRO_srepos[rhel8]}
-DISTRO_srepos[rhel8sat6r15]+='
+DISTRO_srepos[rhel8sat6r15]='
 satellite-capsule-6.15-for-rhel-8-x86_64-source-rpms
 satellite-maintenance-6.15-for-rhel-8-x86_64-source-rpms
 satellite-6.15-for-rhel-8-x86_64-source-rpms
@@ -2584,17 +2583,13 @@ RUN dnf -y install GConf2 cmake-rpm-macros color-filesystem cups-devel emacs-com
 
 RUN dnf -y install sscg
 
-RUN dnf config-manager --set-disabled 'ubi-8-*'
-
 RUN dnf module list --enabled
 
-RUN dnf module -y reset postgresql
+RUN dnf -y module reset postgresql
 RUN dnf -y module enable postgresql:12
 
-RUN dnf module -y reset ruby
+RUN dnf -y module reset ruby
 RUN dnf -y module enable ruby:2.7
-
-# RUN dnf -y module enable satellite:el8
 
 RUN dnf makecache
 
