@@ -5300,7 +5300,7 @@ x_expand_srpm_run()
 	{
 	    x_run_expander_hook_maybe "$hookdir" srpm before-builddep
 	    if rpm -q dnf-plugins-core > /dev/null 2>&1; then
-		dnf builddep -y --allowerasing --skip-broken --nobest "${srpm}"
+		dnf builddep -y --allowerasing --skip-broken --nobest --skip-unavailable "${srpm}"
 		s=$?
 	    elif rpm -q yum-utils > /dev/null 2>&1; then
 		yum-builddep -y --skip-broken --setopt=protected_multilib=false "${srpm}"
