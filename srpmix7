@@ -2469,6 +2469,44 @@ COPY ./srpmix7 /usr/bin/srpmix7
 '
 
 #
+# rhel9dpath
+#
+DISTRO_stype[rhel9dpath]=dds
+DISTRO_expander[rhel9dpath]=srpm
+DISTRO_srepos[rhel9dpath]='
+fast-datapath-for-rhel-9-x86_64-source-rpms
+'
+DISTRO_brepos[rhel9dpath]=${DISTRO_brepos[rhel9]}
+DISTRO_brepos[rhel9dpath]+='
+fast-datapath-for-rhel-9-x86_64-rpms
+openstack-17-for-rhel-9-x86_64-rpms
+rhel-9-for-x86_64-highavailability-rpms
+'
+DISTRO_docker_files[rhel9dpath]='
+FROM registry.access.redhat.com/ubi9/ubi
+RUN dnf -y install zsh rpm-build yum-utils
+RUN dnf -y install gcc annobin
+RUN dnf config-manager --set-enabled rhel-9-for-x86_64-appstream-rpms
+RUN dnf config-manager --set-enabled codeready-builder-for-rhel-9-x86_64-rpms
+
+#include "srpmix7.dockerfile"
+
+RUN dnf repolist --all
+RUN dnf -y install git javapackages-tools autoconf automake gettext-devel libtool make bison flex
+RUN dnf -y install fontconfig perl rubygems libselinux-utils dos2unix
+RUN dnf -y install xorg-x11-server-devel intltool java-1.8.0-openjdk-devel platform-python-devel
+RUN dnf -y install cmake-rpm-macros qt5-rpm-macros python-qt5-rpm-macros kernel-rpm-macros python3-rpm-macros
+RUN dnf -y install cmake-rpm-macros color-filesystem cups-devel emacs-common environment-modules firewalld-filesystem fontpackages-devel golang httpd-devel info javapackages-filesystem javapackages-local javapackages-tools kernel-rpm-macros lua-devel meson mingw-filesystem-base mingw32-filesystem mpich-devel multilib-rpm-config ninja-build openmpi-devel perl-macros pesign php-devel php-pear postgresql-server-devel python-qt5-rpm-macros python-rpm-macros python3-rpm-macros python3-rpm-macros qt5-qtbase-common qt5-rpm-macros redhat-rpm-config redis-devel ruby-devel rubygems-devel rust-toolset sblim-cmpi-devel scl-utils-build selinux-policy sip systemd systemtap-sdt-devel texlive-base urw-base35-fonts-devel vim-filesystem
+
+RUN dnf -y install sscg
+
+RUN dnf makecache
+
+COPY ./hooks /hooks
+COPY ./srpmix7 /usr/bin/srpmix7
+'
+
+#
 # rhel8rt
 #
 DISTRO_stype[rhel8rt]=dds
