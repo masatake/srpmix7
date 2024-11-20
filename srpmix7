@@ -2588,22 +2588,22 @@ COPY ./srpmix7 /usr/bin/srpmix7
 #
 # rhel8sat
 #
-DISTRO_stype[rhel8sat6r15]=dds
-DISTRO_expander[rhel8sat6r15]=srpm
-DISTRO_srepos[rhel8sat6r15]='
-satellite-capsule-6.15-for-rhel-8-x86_64-source-rpms
-satellite-maintenance-6.15-for-rhel-8-x86_64-source-rpms
-satellite-6.15-for-rhel-8-x86_64-source-rpms
+DISTRO_stype[rhel8sat6r16]=dds
+DISTRO_expander[rhel8sat6r16]=srpm
+DISTRO_srepos[rhel8sat6r16]='
+satellite-capsule-6.16-for-rhel-8-x86_64-source-rpms
+satellite-maintenance-6.16-for-rhel-8-x86_64-source-rpms
+satellite-6.16-for-rhel-8-x86_64-source-rpms
 satellite-client-6-for-rhel-8-x86_64-source-rpms
 '
-DISTRO_brepos[rhel8sat6r15]=${DISTRO_brepos[rhel8]}
-DISTRO_brepos[rhel8sat6r15]+='
-satellite-capsule-6.15-for-rhel-8-x86_64-rpms
-satellite-maintenance-6.15-for-rhel-8-x86_64-rpms
-satellite-6.15-for-rhel-8-x86_64-rpms
+DISTRO_brepos[rhel8sat6r16]=${DISTRO_brepos[rhel8]}
+DISTRO_brepos[rhel8sat6r16]+='
+satellite-capsule-6.16-for-rhel-8-x86_64-rpms
+satellite-maintenance-6.16-for-rhel-8-x86_64-rpms
+satellite-6.16-for-rhel-8-x86_64-rpms
 satellite-client-6-for-rhel-8-x86_64-rpms
 '
-DISTRO_docker_files[rhel8sat6r15]='
+DISTRO_docker_files[rhel8sat6r16]='
 FROM registry.access.redhat.com/ubi8/ubi
 RUN dnf -y install zsh rpm-build yum-utils
 RUN dnf -y install gcc annobin
