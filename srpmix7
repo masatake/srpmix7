@@ -1766,6 +1766,7 @@ typeset -A DISTRO_srepos
 typeset -A DISTRO_brepos
 typeset -A DISTRO_docker_files
 typeset -A DISTRO_hook_scripts
+typeset -A DISTRO_dnf5
 
 #
 # centos8
@@ -2794,6 +2795,25 @@ i_podman-image-build_help()
     done
 }
 
+i_podman-image-build_run_emit_code_enabling_repo()
+{
+    local r=$1
+    local pkgmgr=$2
+
+    case "$pkgmgr" in
+	(dnf)
+	    if [[ "${DISTRO_dnf5[$distro]}" == 1 ]]; then
+		echo "RUN dnf config-manager setopt $r.enabled=1"
+	    else
+		echo "RUN dnf config-manager --set-enabled $r"
+	    fi
+	    ;;
+	(yum)
+	    echo "RUN yum-config-manager --enable $r"
+	    ;;
+    esac
+}
+
 i_podman-image-build_run()
 {
     local k
@@ -2873,19 +2893,13 @@ i_podman-image-build_run()
 
     case "$stype" in
 	(dds)
-	    for r in $(echo ${DISTRO_srepos[$distro]}); do
-		echo "RUN dnf config-manager --set-enabled $r"
-	    done >> $tmpdir/srpmix7.dockerfile
-	    for r in $(echo ${DISTRO_brepos[$distro]}); do
-		echo "RUN dnf config-manager --set-enabled $r"
+	    for r in $(echo ${DISTRO_srepos[$distro]}) $(echo ${DISTRO_brepos[$distro]}); do
+		i_podman-image-build_run_emit_code_enabling_repo "$r" dnf
 	    done >> $tmpdir/srpmix7.dockerfile
 	    ;;
 	(yds)
-	    for r in $(echo ${DISTRO_srepos[$distro]}); do
-		echo "RUN yum-config-manager --enable $r"
-	    done >> $tmpdir/srpmix7.dockerfile
-	    for r in $(echo ${DISTRO_brepos[$distro]}); do
-		echo "RUN yum-config-manager --enable $r"
+	    for r in $(echo ${DISTRO_srepos[$distro]}) $(echo ${DISTRO_brepos[$distro]}); do
+		i_podman-image-build_run_emit_code_enabling_repo "$r" yum
 	    done >> $tmpdir/srpmix7.dockerfile
 	    ;;
 	(*)
@@ -2997,7 +3011,7 @@ i_podman-srpm-pkglist_run()
 		else
 		    fmt='\1 \2'
 		fi
-		podman run --name=dnf-list-"${distro}" --rm srpmix7-"${distro}" dnf -q --showduplicates list '*.src' \
+		podman run --name=dnf-list-"${distro}" --rm srpmix7-"${distro}" dnf -q list --showduplicates '*.src' \
 		    | grep -v '^Available Packages.*' \
 		    | sed -n -s 's|^\([^ \t]\+\).src[ \t]\+\([^ \t]\+\)[ \t]\+@\?\([^ \t]\+\).*$|'"${fmt}"'|p' \
 		    | trim_epoch \
@@ -4911,19 +4925,25 @@ x_src_dds_transfer()
 
     {
 	x_run_stype_hook_maybe "$hookdir" dds before-download
+	local osource=--source
+	local odir=--downloaddir
+	if rpm -q dnf5 > /dev/null; then
+	    osource=--srpm
+	    odir=--destdir
+	fi
 	case "$sloc" in
 	    (\[*\]*)
 		pname=${sloc#\[*\]}
 		repo=${${sloc%\]*}[2,-1]}
 		if [[ -z "$hookdir" ]]; then
-		    dnf download --source --downloaddir ${t}/$p_stmp --disablerepo '*' --enablerepo "$repo" $pname
+		    dnf --disablerepo '*' --enablerepo "$repo" download $osource $odir ${t}/$p_stmp $pname
 		else
-		    dnf download --source --downloaddir ${t}/$p_stmp --enablerepo "$repo" $pname
+		    dnf --enablerepo "$repo" download $osource $odir  ${t}/$p_stmp $pname
 		fi
 		s=$?
 		;;
 	    (*)
-		dnf download --source --downloaddir ${t}/$p_stmp $sloc
+		dnf download $osource $odir ${t}/$p_stmp $sloc
 		s=$?
 		;;
 	esac
@@ -5332,7 +5352,10 @@ x_expand_srpm_run()
     if [[ -z "${nobuilddep}" ]]; then
 	{
 	    x_run_expander_hook_maybe "$hookdir" srpm before-builddep
-	    if rpm -q dnf-plugins-core > /dev/null 2>&1; then
+	    if rpm -q dnf5 > /dev/null; then
+		dnf builddep -y --allowerasing --nobest --skip-unavailable "${srpm}"
+		s=$?
+	    elif rpm -q dnf-plugins-core > /dev/null 2>&1; then
 		dnf builddep -y --allowerasing --skip-broken --nobest --skip-unavailable "${srpm}"
 		s=$?
 	    elif rpm -q yum-utils > /dev/null 2>&1; then
