@@ -34,8 +34,13 @@ help()
     echo "	SOURCES7UPPDERDIR: ${DEFAULT_SOURCES_DIR}"
     echo
     echo Examples:
-    echo "	./lsiso lslink-l rhel8.2"
-    echo "	/srv/sources8/lsiso lslink-l --cache-dir /srv/sources8/isos --sources-dir /root/_rhel8 rhel8.1"
+    echo '	On real sources:'
+    echo "	./lsiso lslink-l rhel8.2 > _linking/link-alias-rhel8-2.sh"
+    echo "	bash _linking/link-alias-rhel8-2.sh > _linking/link-alias-rhel8-2.log"
+    echo
+    echo '	As a part of making a casket image:'
+    echo "	/srv/sources8/lsiso lslink-l --cache-dir /srv/sources8/isos --sources-dir /root/_rhel8 rhel8.1 > _linking/link-alias-rhel8-1.sh"
+    echo "	bash _linking/link-alias-rhel8-1.sh > _linking/link-alias-rhel8-1.log"
 }
 
 error()
