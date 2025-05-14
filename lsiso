@@ -316,6 +316,7 @@ do_lslink-l()
 	    a="${d}"
 	fi
 	pathcomp=${rpm2pathcomp[$rpm]}
+	local pathcomp_upper=${pathcomp%/*}
 
 	cat<<-EOF
 	echo -n ${pathcomp}...
