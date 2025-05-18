@@ -62,7 +62,7 @@ dump_dnf_conf()
     local repo
 
     case "$distro" in
-	rhel9.*|rhel8.*|rhel7.*)
+	rhel10.*|rhel9.*|rhel8.*|rhel7.*)
 	    repo=rhel-8-for-x86_64-baseos-rpms
 	    ;;
 	*)
@@ -109,7 +109,7 @@ isonames()
 		echo rhel-baseos-${ver}-source-dvd.iso
 	    fi
 	    ;;
-	rhel8.*|rhel9.*)
+	rhel8.*|rhel9.*|rhel10.*)
 	    if [[ "$binary" == "-b" ]]; then
 		echo rhel-${ver}-x86_64-dvd.iso
 	    else
@@ -173,6 +173,13 @@ do_download()
 
     local base
     case "$distro" in
+	rhel10.*)
+	    if [[ -n "$binary" ]]; then
+		base=/content/dist/rhel10/${distro#rhel}/x86_64/baseos/iso
+	    else
+		base=/content/dist/rhel10/${distro#rhel}/x86_64/baseos/source/iso
+	    fi
+	    ;;
 	rhel9.*)
 	    if [[ -n "$binary" ]]; then
 		base=/content/dist/rhel9/${distro#rhel}/x86_64/baseos/iso
@@ -530,7 +537,7 @@ do_action()
     fi
 
     case "$distro" in
-	rhel9.*|rhel8.*|rhel7.*)
+	rhel10.*|rhel9.*|rhel8.*|rhel7.*)
 	    do_${action} ${distro} ${module} ${stream} ${cache_dir} ${sources_dir} ${binary}
 	    ;;
 	rhel*)
