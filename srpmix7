@@ -5528,6 +5528,11 @@ x_expand_srpm_run()
 		;;
 	esac
 
+	local a
+	for a in "${args[@]}"; do
+	    echo "$a"
+	done > "$t/$p_log/x_srpm-rpmbuild-bp.args"
+
 	rpmbuild "${args[@]}" \
 		 > "$t/$p_log/x_srpm-rpmbuild-bp.log" 2>&1 \
 		 < <($generator "")
