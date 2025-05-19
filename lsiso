@@ -62,7 +62,10 @@ dump_dnf_conf()
     local repo
 
     case "$distro" in
-	rhel10.*|rhel9.*|rhel8.*|rhel7.*)
+	rhel10.*)
+	    repo=rhel-10-for-x86_64-baseos-rpms
+	    ;;
+	rhel9.*|rhel8.*|rhel7.*)
 	    repo=rhel-8-for-x86_64-baseos-rpms
 	    ;;
 	*)
