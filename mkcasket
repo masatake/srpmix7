@@ -48,14 +48,14 @@ join()
 
     local p=$1
     shift
-    
+
     echo _${p}$(join "$@")
 }
 
 do_weave()
 {
     local opt
-    
+
     while [ $# -gt 0 ]; do
 	case $1 in
 	    --source-root=*)
@@ -83,7 +83,7 @@ do_weave()
 		;;
 	esac
     done
-	
+
     if [ $# -lt 1 ]; then
 	error 'No distkey (like rhel8) given'
     fi
@@ -107,7 +107,7 @@ do_weave()
 	local n=$(basename $(dirname "$p"))
 	k=$(basename $(dirname $(dirname "$p")))
 	mkdir -p "$d/sources/$k/$n/$v" || error "Failed to make directroy: $d/sources/$k/$n/$v"
- 	# echo mount --bind "$p" "$d/sources/$k/$n/$v"
+	# echo mount --bind "$p" "$d/sources/$k/$n/$v"
 	mount --bind "$p" "$d/sources/$k/$n/$v" || error "Failed to mount $p to $d/sources/$k/$n/$v"
     done
 }
@@ -163,11 +163,11 @@ do_make()
 	img="$(pwd)/$img"
     fi
     shift
-    
+
     if [ -z "$img" ]; then
 	error 'No image name given'
     fi
-    
+
     if [ $# -lt 1 ]; then
 	error 'No distkey (like rhel8) given'
     fi
@@ -182,7 +182,7 @@ do_make()
 	if [ "$(ls | wc -l)" = 0 ]; then
 	    error "The weaved directory is empty: $d"
 	fi
-	
+
 	time "$CMD" * "$img" -keep-as-directory -all-root -comp xz -progress
     )
 }
