@@ -8,6 +8,7 @@ help()
     echo "	mkcasket help"
     echo "	mkcasket weave [OPTIONS] distkey..."
     echo "	mkcasket make [OPTIONS] image-name.sqfs.xz distkey..."
+    echo "	mkcasket make [OPTIONS] image-name.erofs.zstd distkey..."
     echo "	mkcasket desolve [OPTIONS] distkey..."
     echo
     echo Options:
@@ -16,6 +17,7 @@ help()
     echo Examples:
     echo "	mkcasket weave rhel8"
     echo "	mkcasket make image-name.sqfs.xz rhel8"
+    echo "	(or mkcasket make image-name.sqfs.zstd rhel10)"
     echo "	mkcasket desolve rhel8"
 }
 
@@ -155,6 +157,13 @@ do_desolve()
     rmdir $d || error "Failed to do rmdir $d"
 }
 
+make_erofs()
+{
+    local img=$1
+
+    mkfs.erofs --all-root -z zstd "$img" .
+}
+
 make_squashfs()
 {
     local img=$1
@@ -179,6 +188,9 @@ do_make()
     case "$img" in
 	(*.sqfs.xz)
 	    maker=make_squashfs
+	    ;;
+	(*.erofs.zstd)
+	    maker=make_erofs
 	    ;;
 	(*)
 	    error 'No suitable mkfs command for "'"${img}"'"'
