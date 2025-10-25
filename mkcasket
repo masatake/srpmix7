@@ -1,6 +1,5 @@
 #!/bin/bash
 
-CMD=mksquashfs
 ROOT=/srv/sources8
 
 help()
@@ -156,8 +155,17 @@ do_desolve()
     rmdir $d || error "Failed to do rmdir $d"
 }
 
+make_squashfs()
+{
+    local img=$1
+
+    mksquashfs * "$img" -keep-as-directory -all-root -comp xz -progress
+}
+
 do_make()
 {
+    local maker
+
     local img=$1
     if [ "${img:0:1}" != '/' ]; then
 	img="$(pwd)/$img"
@@ -167,6 +175,15 @@ do_make()
     if [ -z "$img" ]; then
 	error 'No image name given'
     fi
+
+    case "$img" in
+	(*.sqfs.xz)
+	    maker=make_squashfs
+	    ;;
+	(*)
+	    error 'No suitable mkfs command for "'"${img}"'"'
+	    ;;
+    esac
 
     if [ $# -lt 1 ]; then
 	error 'No distkey (like rhel8) given'
@@ -183,7 +200,7 @@ do_make()
 	    error "The weaved directory is empty: $d"
 	fi
 
-	time "$CMD" * "$img" -keep-as-directory -all-root -comp xz -progress
+	time  "${maker}" "$img"
     )
 }
 
