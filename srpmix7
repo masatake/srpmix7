@@ -2015,7 +2015,6 @@ RUN dnf -y install zsh rpm-build dnf-plugins-core
 RUN dnf -y install gcc
 RUN dnf -y install git
 
-# Conflict: postgresql-test-rpm-macros.noarch postgresql15-test-rpm-macros.noarch build-constraints-rpm-macros.noarch
 RUN dnf -y install cmake-rpm-macros.noarch fedora-rpm-macros.noarch pyproject-rpm-macros.noarch python-rpm-macros.noarch python3-rpm-macros.noarch qt5-rpm-macros.noarch systemd-rpm-macros.noarch R-rpm-macros.noarch blender-rpm-macros.noarch build2-rpm-macros.noarch cargo-rpm-macros.noarch erlang-rpm-macros.noarch flatpak-rpm-macros.x86_64 folly-rpm-macros.noarch fonts-rpm-macros.noarch gap-rpm-macros.x86_64 ghc-rpm-macros.noarch go-rpm-macros.x86_64 kde-apps-rpm-macros.noarch kernel-rpm-macros.noarch kf5-rpm-macros.noarch kf6-rpm-macros.noarch lua-rpm-macros.noarch ocaml-rpm-macros.noarch python-pyqt6-rpm-macros.noarch python-qt5-rpm-macros.noarch qt6-rpm-macros.noarch rocm-rpm-macros.x86_64 zig-rpm-macros.noarch
 
 RUN dnf -y install ansible-packaging.noarch nodejs-packaging.noarch python3-packaging.noarch ghc-hslua-packaging.x86_64 maven-archetype-packaging.noarch mingw32-python3-packaging.noarch mingw64-python3-packaging.noarch php-pear-PEAR-Command-Packaging.noarch python3-jaraco-packaging.noarch python3-jupyter-packaging.noarch
