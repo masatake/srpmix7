@@ -55,6 +55,16 @@ make_cache_dir()
     mkdir -p ${cache_dir} || error "failed to make directroy for storing iso images: ${cache_dir}"
 }
 
+my_major_version()
+{
+    local ver=$(rpm -q --queryformat=%{version} redhat-release)
+    if [[ -z "${ver}" ]]; then
+       error "failed to get the version of redhat-release package"
+    fi
+
+    echo "${ver/%.*}"
+}
+
 _DNFCONF=
 dump_dnf_conf()
 {
@@ -62,11 +72,8 @@ dump_dnf_conf()
     local repo
 
     case "$distro" in
-	rhel10.*)
-	    repo=rhel-10-for-x86_64-baseos-rpms
-	    ;;
-	rhel9.*|rhel8.*|rhel7.*)
-	    repo=rhel-8-for-x86_64-baseos-rpms
+	rhel10.*|rhel9.*|rhel8.*|rhel7.*)
+	    repo=rhel-$(my_major_version)-for-x86_64-baseos-rpms
 	    ;;
 	*)
 	    error "Unknown distribution: $distro"
