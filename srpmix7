@@ -2606,7 +2606,7 @@ RUN dnf config-manager --set-enabled codeready-builder-for-rhel-10-x86_64-rpms
 #include "srpmix7.dockerfile"
 
 RUN dnf repolist --all
-RUN dnf -y install *-rpm-macros
+RUN dnf -y --allowerasing --skip-broken install *-rpm-macros
 RUN dnf -y install git javapackages-tools autoconf automake gettext-devel libtool make bison flex
 RUN dnf -y install fontconfig perl rubygems libselinux-utils dos2unix
 RUN dnf -y install intltool java-21-openjdk-devel platform-python-devel
