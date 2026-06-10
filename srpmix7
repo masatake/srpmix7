@@ -2623,6 +2623,22 @@ COPY ./srpmix7 /usr/bin/srpmix7
 '
 
 #
+# rhel10ha
+#
+DISTRO_stype[rhel10ha]=dds
+DISTRO_expander[rhel10ha]=srpm
+DISTRO_srepos[rhel10ha]='
+rhel-10-for-x86_64-highavailability-source-rpms
+'
+
+
+DISTRO_brepos[rhel10ha]=${DISTRO_brepos[rhel10]}
+DISTRO_brepos[rhel10ha]+='
+rhel-10-for-x86_64-highavailability-rpms
+'
+DISTRO_docker_files[rhel10ha]=${DISTRO_docker_files[rhel10]}
+
+#
 # rhel9
 #
 DISTRO_stype[rhel9]=dds
