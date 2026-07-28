@@ -2639,6 +2639,22 @@ rhel-10-for-x86_64-highavailability-rpms
 DISTRO_docker_files[rhel10ha]=${DISTRO_docker_files[rhel10]}
 
 #
+# rhel10rt
+#
+DISTRO_stype[rhel10rt]=dds
+DISTRO_expander[rhel10rt]=srpm
+DISTRO_srepos[rhel10rt]='
+rhel-10-for-x86_64-rt-source-rpms
+'
+
+
+DISTRO_brepos[rhel10rt]=${DISTRO_brepos[rhel10]}
+DISTRO_brepos[rhel10rt]+='
+rhel-10-for-x86_64-rt-rpms
+'
+DISTRO_docker_files[rhel10rt]=${DISTRO_docker_files[rhel10]}
+
+#
 # rhel9
 #
 DISTRO_stype[rhel9]=dds
