@@ -10,7 +10,7 @@ lcopy bulk
 ================
 ::
 
-   # ./srpmix7 lcopy-deploy -/ /srv/sources ~/var/upstream/lcopy.d
+   # ./srpmix7 lcopy-deploy [--make-pkg-dir|-p] -patches -/ /srv/sources ~/var/upstream/lcopy.d
    # chown -R yamato:yamato /srv/sources/sources/*/*/\^lcopy/archives
 
 update the local copies

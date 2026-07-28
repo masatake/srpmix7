@@ -4211,6 +4211,8 @@ i_lcopy-deploy_help()
     {
 	echo "	--root-directory|-/ DIR"
 	echo "		default: /var/lib/${prefix}"
+	echo "  --make-pkg-dir|-p"
+	echo "		make directory for package layer if it doesn't exit"
     }
 }
 
@@ -4245,6 +4247,7 @@ i_lcopy-deploy_run()
 {
     local c=${${0#i_}%_run}
     local rdir=/var/lib/${prefix}
+    local mkdir_pkg=
     local lcopyd
     local lcopy
     local pkg
@@ -4273,6 +4276,10 @@ i_lcopy-deploy_run()
 		fi
 		rdir=$2
 		shift 2
+		;;
+	    (-p|--make-pkg-dir)
+		mkdir_pkg=1
+		shift 1
 		;;
 	    (-*)
 		-E- "$c: unknown option: $1"
@@ -4311,8 +4318,15 @@ i_lcopy-deploy_run()
 
 	t="${rdir}/${P_sources}/$(name_prefix $pkg)/$pkg"
 	if [[ ! -d "$t" ]]; then
-	    -W- "no package dir for $lcopy: $t"
-	    continue
+	    if [[ -n "$mkdir_pkg" ]]; then
+		if ! mkdir -p "$t"; then
+		    -W- "failed in package dir for $lcopy: $t"
+		    continue
+		fi
+	    else
+		-W- "no package dir for $lcopy: $t"
+		continue
+	    fi
 	fi
 
 	tmp_dest=$t/${p_stmp}--${expander}
