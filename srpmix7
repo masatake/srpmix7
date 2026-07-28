@@ -4343,7 +4343,12 @@ i_lcopy-deploy_run()
 	)
 	branch=${branch:-${p_lcopy_default_branch}}
 	dest=$t/${branch}--${expander}
-	mv "${tmp_dest}" "${dest}"
+	if [[ -d "${dest}" ]]; then
+	    # The dest already exits.
+	    rm -r "${tmp_dest}"
+	else
+	    mv "${tmp_dest}" "${dest}"
+	fi
 	(
 	    cd $t
 	    ln -f -s -r "${dest}" "^${expander}"
