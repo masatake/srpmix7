@@ -1,0 +1,10 @@
+GIT_CF_VERSION=0.0.1
+GIT_REPOSITORY=https://github.com/confidential-containers/trustee.git
+GIT_BRANCH=
+LCOPY_CF_VERSION=0.4.0
+LCOPY_VCS=git
+LCOPY_PACKAGE=confidential-containers-trustee
+LCOPY_BRANCH=
+LCOPY_UPDATE=yes
+LCOPY_GENERATED_BY=manual
+LCOPY_DATE=2026-07-29
