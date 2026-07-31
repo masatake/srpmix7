@@ -20,6 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+readonly basedir=/var/lib
 readonly prefix=srpmix7
 readonly PREFIX=${(U)prefix}
 readonly SELF_FULL=$(/usr/bin/realpath $0)
@@ -595,7 +596,7 @@ i_link_help()
 
     echo "Example:"
     echo
-    echo "	\$ $SELF link alias rhel-server-7-6-source-iso /var/lib/srpmix7 kernel/3.10.0-957.el7--srpm"
+    echo "	\$ $SELF link alias rhel-server-7-6-source-iso ${basedir}/srpmix7 kernel/3.10.0-957.el7--srpm"
     echo
 }
 
@@ -3978,7 +3979,7 @@ i_podman-srpm-deploy_help()
     echo "OPTIONS:"
     {
 	echo "	--output-directory|-o DIR"
-	echo "		default: /var/lib/${prefix}"
+	echo "		default: ${basedir}/${prefix}"
 	echo "	--root-directory|-/ DIR"
 	echo "		same as --output-directory"
 	echo "	--procs|-n N"
@@ -3997,7 +3998,7 @@ i_podman-srpm-deploy_run()
     local c=${${0#i_}%_run}
     local opt
     local next
-    local odir=/var/lib/${prefix}
+    local odir=${basedir}/${prefix}
     local procs=$(expr 2 \* $(nproc --ignore=1))
     local dont_rebuild_image
     local dont_overwrite_option
@@ -4117,7 +4118,7 @@ i_srpm-list_help()
 	echo "	-d|--distro DISTRO"
 	echo "		list only versions in DISTRO"
 	echo "	--root-directory|-/ DIR"
-	echo "		default: /var/lib/${prefix}"
+	echo "		default: ${basedir}/${prefix}"
     }
 }
 
@@ -4187,7 +4188,7 @@ pkg_qsort()
 i_srpm-list_run()
 {
     local c=${${0#i_}%_run}
-    local rdir=/var/lib/${prefix}
+    local rdir=${basedir}/${prefix}
     local reverse
     local distro
     local pkg
@@ -4287,7 +4288,7 @@ i_lcopy-deploy_help()
     echo "OPTIONS:"
     {
 	echo "	--root-directory|-/ DIR"
-	echo "		default: /var/lib/${prefix}"
+	echo "		default: ${basedir}/${prefix}"
 	echo "  --make-pkg-dir|-p"
 	echo "		make directory for package layer if it doesn't exit"
     }
@@ -4323,7 +4324,7 @@ lcopy_pkg()
 i_lcopy-deploy_run()
 {
     local c=${${0#i_}%_run}
-    local rdir=/var/lib/${prefix}
+    local rdir=${basedir}/${prefix}
     local mkdir_pkg=
     local lcopyd
     local lcopy
@@ -4450,14 +4451,14 @@ i_lcopy-update_help()
     echo "OPTIONS:"
     {
 	echo "	--root-directory|-/ DIR"
-	echo "		default: /var/lib/${prefix}"
+	echo "		default: ${basedir}/${prefix}"
     }
 }
 
 i_lcopy-update_run()
 {
     local c=${${0#i_}%_run}
-    local rdir=/var/lib/${prefix}
+    local rdir=${basedir}/${prefix}
 
     local t
     local tmp_dest
