@@ -4188,6 +4188,8 @@ pkg_qsort()
 i_srpm-list_run()
 {
     local c=${${0#i_}%_run}
+    local opt
+    local next
     local rdir=${basedir}/${prefix}
     local reverse
     local distro
@@ -4324,6 +4326,8 @@ lcopy_pkg()
 i_lcopy-deploy_run()
 {
     local c=${${0#i_}%_run}
+    local opt
+    local next
     local rdir=${basedir}/${prefix}
     local mkdir_pkg=
     local lcopyd
@@ -4458,6 +4462,8 @@ i_lcopy-update_help()
 i_lcopy-update_run()
 {
     local c=${${0#i_}%_run}
+    local opt
+    local next
     local rdir=${basedir}/${prefix}
 
     local t
