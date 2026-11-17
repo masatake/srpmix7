@@ -55,11 +55,9 @@ Do the following steps as preparation at a NFS client.
    
 	for i in 0 1 2 3 4  ; do bash link-alias-rhel9-$i.sh > link-alias-rhel9-$i.log 2>&1; done
 
-6. Remove packages that you don't include to the casket
-
-7. Copy README to the top dir.
+6. Copy README to the top dir.
    
-8. Make the casket.
+7. Make the casket.
    e.g.
    
 	bash /srv/sources8/_tools/mkcasket make casket-20240504-rhel9-no-dotnet.sqfs.xz rhel9
@@ -70,4 +68,3 @@ Do the following steps as preparation at a NFS client.
    e.g.
 
 	bash /srv/sources8/_tools/mkcasket desolve rhel9
-
