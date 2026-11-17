@@ -18,6 +18,11 @@ Do the following steps as preparation at sources:
 
 	./lsiso download rhel9.4 && ./lsiso download -b rhel9.4 
 
+2. Ensure the following commands are installed:
+
+  * isoinfo (in genisoimage package)
+  * mksquashfs (in squashfs-tools package)
+
 Make a casket
 =================================================
 Do the following steps as preparation at a NFS client.
